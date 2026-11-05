@@ -29,6 +29,16 @@ Settings (bottom of the menu): shortcut, language (English / Русский), op
 
 ## Install
 
+**Homebrew:**
+
+```bash
+brew tap guf-hub/tap
+brew trust --cask guf-hub/tap/blankly
+brew install --cask guf-hub/tap/blankly
+```
+
+**Or manually:**
+
 1. Download `Blankly-x.y.dmg` from [Releases](../../releases), open it and drag Blankly to Applications.
 2. Open Blankly. The app is not notarized by Apple, so macOS blocks the first launch:
    **System Settings → Privacy & Security → "Blankly was blocked" → Open Anyway**.

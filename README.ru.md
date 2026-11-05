@@ -29,6 +29,16 @@
 
 ## Установка
 
+**Через Homebrew:**
+
+```bash
+brew tap guf-hub/tap
+brew trust --cask guf-hub/tap/blankly
+brew install --cask guf-hub/tap/blankly
+```
+
+**Или вручную:**
+
 1. Скачайте `Blankly-x.y.dmg` из [Releases](../../releases), откройте и перетащите Blankly в «Программы».
 2. Запустите Blankly. Приложение не нотаризовано Apple, поэтому первый запуск macOS заблокирует:
    **Системные настройки → Конфиденциальность и безопасность → «Blankly заблокировано» → «Всё равно открыть»**.
