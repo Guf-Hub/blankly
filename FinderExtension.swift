@@ -65,6 +65,11 @@ final class FinderSync: FIFinderSync {
                 menu.addItem(entry(title, tag: (Self.allExts.firstIndex(of: ext) ?? 0) + 1, symbol: nil))
             }
         }
+        let pb = NSPasteboard.general
+        if pb.string(forType: .string) != nil || pb.data(forType: .png) != nil || pb.data(forType: .tiff) != nil {
+            menu.addItem(.separator())
+            menu.addItem(entry(Self.ru ? "Из буфера обмена…" : "From Clipboard…", tag: -2, symbol: "doc.on.clipboard"))
+        }
         menu.addItem(.separator())
         menu.addItem(entry(Self.ru ? "Другое… (мои шаблоны)" : "More… (my templates)", tag: -1, symbol: nil))
         return menu
@@ -94,6 +99,7 @@ final class FinderSync: FIFinderSync {
     @objc func pick(_ sender: NSMenuItem) {
         guard let dir = FIFinderSyncController.default().targetedURL() else { return }
         var q = [URLQueryItem(name: "path", value: dir.path)]
+        if sender.tag == -2 { q.append(URLQueryItem(name: "ext", value: "clipboard")) }
         if sender.tag == 0 { q.append(URLQueryItem(name: "ext", value: "folder")) }
         if sender.tag > 0, sender.tag <= Self.allExts.count { q.append(URLQueryItem(name: "ext", value: Self.allExts[sender.tag - 1])) }
         var c = URLComponents()

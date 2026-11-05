@@ -5,6 +5,7 @@ let templatesDir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : 
 testNames()
 testShortcuts()
 testStrings()
+testCreation()
 testTemplates(dir: templatesDir)
 
 print(failures == 0 ? "OK: \(checks) проверок" : "FAILED: \(failures) из \(checks)")
