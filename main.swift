@@ -639,7 +639,6 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
     let finderLabel = NSTextField(labelWithString: "")
     let finderButton = NSButton()
     let version = NSTextField(labelWithString: "")
-    let helpButton = NSButton(title: "", target: nil, action: nil)
     let templatesButton = NSButton()
     let templatesHint = NSTextField(labelWithString: "")
     let templatesChange = NSButton()
@@ -710,10 +709,6 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         version.stringValue = "Blankly \(ver)"
         version.frame = NSRect(x: 20, y: 16, width: 340, height: 16)
         version.font = .systemFont(ofSize: 11); version.textColor = .tertiaryLabelColor
-        // «?» — инструкция: README на языке приложения (есть только английский и русский)
-        helpButton.bezelStyle = .helpButton
-        helpButton.frame = NSRect(x: 336, y: 10, width: 25, height: 25)
-        helpButton.target = self; helpButton.action = #selector(openHelp)
 
         templatesButton.frame = NSRect(x: 14, y: 84, width: 186, height: 32)
         templatesButton.bezelStyle = .rounded
@@ -727,7 +722,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         templatesPath.font = .systemFont(ofSize: 11); templatesPath.textColor = .secondaryLabelColor
         templatesPath.lineBreakMode = .byTruncatingMiddle
 
-        [hotLabel, hotButton, note, fmtLabel, fmtButton, langLabel, langPopup, loginBox, updatesBox, openBox, renameBox, finderLabel, finderButton, templatesPath, templatesButton, templatesChange, templatesHint, version, helpButton]
+        [hotLabel, hotButton, note, fmtLabel, fmtButton, langLabel, langPopup, loginBox, updatesBox, openBox, renameBox, finderLabel, finderButton, templatesPath, templatesButton, templatesChange, templatesHint, version]
             .forEach { v.addSubview($0) }
     }
 
@@ -747,8 +742,10 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         openBox.title = L("openAfter")
         openBox.state = openAfterCreate ? .on : .off
         renameBox.title = L("renameFinder")
+        renameBox.toolTip = L("tipRename")
         renameBox.state = renameInFinder ? .on : .off
         templatesChange.title = L("templatesChange")
+        templatesChange.toolTip = L("tipTemplatesChange")
         templatesPath.stringValue = (userTemplatesDir.path as NSString).abbreviatingWithTildeInPath
         templatesPath.toolTip = userTemplatesDir.path
         templatesButton.title = L("templatesBtn")
@@ -914,6 +911,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
             b.identifier = id
             b.target = self; b.action = #selector(record(_:))
             b.setAccessibilityLabel("\(f.title): \(L("colKey"))")
+            b.toolTip = L("tipKey")
             let x = NSButton(frame: NSRect(x: 126, y: 3, width: 26, height: 24))
             x.bezelStyle = .inline; x.isBordered = false
             x.image = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: L("fmtClear"))
@@ -938,6 +936,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         let p = NSPopUpButton(frame: NSRect(x: 0, y: 2, width: fmtOpenColumnWidth - 8, height: 26), pullsDown: false)
         p.identifier = NSUserInterfaceItemIdentifier(f.ext)
         p.setAccessibilityLabel("\(f.title): \(L("colOpen"))")
+        p.toolTip = L("tipOpen")
         p.target = self; p.action = #selector(openChanged(_:))
         fillApps(p, ext: f.ext)
         cell.addSubview(p)
@@ -1038,11 +1037,6 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         formatKeys[sender.identifier?.rawValue ?? ""] = nil
         _ = app.registerFormatKeys()
         refreshFormatKeys()
-    }
-
-    @objc func openHelp() {
-        let page = lang == "ru" ? "blob/main/docs/README.ru.md" : "#readme"
-        if let url = URL(string: "https://github.com/Guf-Hub/blankly/\(page)") { NSWorkspace.shared.open(url) }
     }
 
     @objc func openTemplates() {

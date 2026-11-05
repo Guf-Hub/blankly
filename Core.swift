@@ -62,6 +62,10 @@ let translations: [String: [String: String]] = [
         "clipName": "From Clipboard",
         "renameFinder": "Don't ask for a name — rename in Finder",
         "templatesChange": "Change…",
+        "tipTemplatesChange": "Pick another templates folder, for example in iCloud Drive. Your templates are copied there.",
+        "tipRename": "Creates the file at once and starts renaming it in Finder. Needs the Accessibility permission.",
+        "tipKey": "Click and press Control + Option + a key. The shortcut creates this file right away, without the menu.",
+        "tipOpen": "The app macOS opens this file type with.",
     ],
     "ru": [
         "base": "Новый файл",
@@ -117,6 +121,10 @@ let translations: [String: [String: String]] = [
         "clipName": "Из буфера",
         "renameFinder": "Не спрашивать имя — переименовать в Finder",
         "templatesChange": "Изменить…",
+        "tipTemplatesChange": "Выбрать другую папку для шаблонов, например в iCloud Drive. Шаблоны скопируются туда.",
+        "tipRename": "Файл создаётся сразу, и Finder начинает его переименовывать. Нужно разрешение «Универсальный доступ».",
+        "tipKey": "Нажмите и введите Control + Option + клавишу. Сочетание создаст этот файл сразу, без меню.",
+        "tipOpen": "Программа, в которой macOS открывает этот тип файлов.",
     ],
     "de": [
         "base": "Neue Datei",
@@ -172,6 +180,10 @@ let translations: [String: [String: String]] = [
         "clipName": "Aus Zwischenablage",
         "renameFinder": "Nicht nach Namen fragen — im Finder umbenennen",
         "templatesChange": "Ändern…",
+        "tipTemplatesChange": "Einen anderen Vorlagenordner wählen, zum Beispiel in iCloud Drive. Ihre Vorlagen werden dorthin kopiert.",
+        "tipRename": "Erstellt die Datei sofort und startet die Umbenennung im Finder. Benötigt die Berechtigung „Bedienungshilfen“.",
+        "tipKey": "Klicken und Control + Option + eine Taste drücken. Der Kurzbefehl erstellt diese Datei sofort, ohne Menü.",
+        "tipOpen": "Die App, mit der macOS diesen Dateityp öffnet.",
     ],
     "fr": [
         "base": "Nouveau fichier",
@@ -227,6 +239,10 @@ let translations: [String: [String: String]] = [
         "clipName": "Depuis le presse-papiers",
         "renameFinder": "Nommer directement dans le Finder",
         "templatesChange": "Modifier…",
+        "tipTemplatesChange": "Choisir un autre dossier de modèles, par exemple dans iCloud Drive. Vos modèles y sont copiés.",
+        "tipRename": "Crée le fichier tout de suite et lance le renommage dans le Finder. Nécessite l’autorisation Accessibilité.",
+        "tipKey": "Cliquez puis appuyez sur Contrôle + Option + une touche. Le raccourci crée ce fichier directement, sans menu.",
+        "tipOpen": "L’app avec laquelle macOS ouvre ce type de fichier.",
     ],
     "es": [
         "base": "Nuevo archivo",
@@ -282,6 +298,10 @@ let translations: [String: [String: String]] = [
         "clipName": "Desde el portapapeles",
         "renameFinder": "No pedir nombre: renombrar en el Finder",
         "templatesChange": "Cambiar…",
+        "tipTemplatesChange": "Elegir otra carpeta de plantillas, por ejemplo en iCloud Drive. Tus plantillas se copian allí.",
+        "tipRename": "Crea el archivo al instante y empieza a renombrarlo en el Finder. Necesita el permiso de Accesibilidad.",
+        "tipKey": "Haz clic y pulsa Control + Opción + una tecla. El atajo crea este archivo al instante, sin menú.",
+        "tipOpen": "La app con la que macOS abre este tipo de archivo.",
     ],
     "zh-Hans": [
         "base": "新建文件",
@@ -337,6 +357,10 @@ let translations: [String: [String: String]] = [
         "clipName": "来自剪贴板",
         "renameFinder": "不询问名称，直接在访达中重命名",
         "templatesChange": "更改…",
+        "tipTemplatesChange": "选择其他模板文件夹，例如 iCloud 云盘中的文件夹。现有模板会复制到那里。",
+        "tipRename": "立即创建文件，并在访达中开始重命名。需要“辅助功能”权限。",
+        "tipKey": "点按后按下 Control + Option + 一个键。该快捷键会直接创建此文件，无需菜单。",
+        "tipOpen": "macOS 用来打开此类文件的应用。",
     ],
     "ja": [
         "base": "新規ファイル",
@@ -392,6 +416,10 @@ let translations: [String: [String: String]] = [
         "clipName": "クリップボードから",
         "renameFinder": "名前を尋ねずに Finder で名前を変更",
         "templatesChange": "変更…",
+        "tipTemplatesChange": "別のテンプレートフォルダを選びます（例：iCloud Drive 内）。今のテンプレートはそこにコピーされます。",
+        "tipRename": "ファイルをすぐに作成し、Finder で名前の変更を始めます。「アクセシビリティ」の許可が必要です。",
+        "tipKey": "クリックして Control + Option + キーを押します。このショートカットでメニューなしでファイルを作成します。",
+        "tipOpen": "macOS がこの種類のファイルを開くアプリ。",
     ],
 ]
 
