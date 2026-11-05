@@ -7,8 +7,11 @@ import UniformTypeIdentifiers
 
 @objc(FinderSync)
 final class FinderSync: FIFinderSync {
-    // Язык — из настроек Blankly (читать их разрешает entitlement в build.sh), иначе английский, как в приложении
-    static var ru: Bool { UserDefaults(suiteName: "app.blankly")?.string(forKey: "lang") == "ru" }
+    // Язык — из настроек Blankly (читать их разрешает entitlement в build.sh); не выбран — язык системы, как в приложении
+    static var ru: Bool {
+        (UserDefaults(suiteName: "app.blankly")?.string(forKey: "lang")
+            ?? (Locale.preferredLanguages.first?.hasPrefix("ru") == true ? "ru" : "en")) == "ru"
+    }
 
     // (расширение, название); "folder" — новая папка. Тот же список, что в главном меню Blankly.
     static var formats: [[(String, String)]] { [

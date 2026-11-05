@@ -12,7 +12,7 @@ import FinderSync
 
 let defaults = UserDefaults.standard
 var lang: String {
-    get { defaults.string(forKey: "lang") ?? "en" }
+    get { defaults.string(forKey: "lang") ?? (Locale.preferredLanguages.first?.hasPrefix("ru") == true ? "ru" : "en") }
     set { defaults.set(newValue, forKey: "lang") }
 }
 var checkUpdates: Bool {
