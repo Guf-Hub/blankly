@@ -5,7 +5,7 @@
 set -e
 cd "${0:A:h}"
 NAME=Blankly
-VERSION=${BLANKLY_VERSION:-1.3}
+VERSION=${BLANKLY_VERSION:-1.3.1}
 # Откуда приложение берёт обновления (Sparkle). Для проверки обновления можно подменить.
 FEED=${BLANKLY_FEED:-https://github.com/Guf-Hub/blankly/releases/latest/download/appcast.xml}
 SPARKLE_PUBLIC_KEY="BYHCPAXCvZj084k8mOtD13xFD1PukaW4Qtq/MUI0bKU="
@@ -89,6 +89,8 @@ cat > "$OUT/Contents/Info.plist" <<EOF
 	<key>CFBundleIdentifier</key><string>app.blankly</string>
 	<key>CFBundleExecutable</key><string>$NAME</string>
 	<key>CFBundleIconFile</key><string>AppIcon</string>
+	<key>CFBundleDevelopmentRegion</key><string>en</string>
+	<key>CFBundleLocalizations</key><array><string>en</string><string>ru</string></array>
 	<key>CFBundlePackageType</key><string>APPL</string>
 	<key>CFBundleShortVersionString</key><string>$VERSION</string>
 	<key>CFBundleVersion</key><string>$VERSION</string>

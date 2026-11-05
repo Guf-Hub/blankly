@@ -82,6 +82,12 @@ let strings: [String: (ru: String, en: String)] = [
     "templatesHint": ("Положите туда любой файл — он появится в меню,\nа новый файл будет его копией.",
                       "Put any file there — it shows up in the menu\nand new files are copies of it."),
 ]
+// Окна Sparkle (и другие системные) — на языке Blankly: выбран в настройках — он, не выбран — как в системе.
+// Действует со следующего запуска окна Sparkle; поэтому вызываем и при старте, и при смене языка.
+func applyLanguage() {
+    if let chosen = defaults.string(forKey: "lang") { defaults.set([chosen], forKey: "AppleLanguages") }
+    else { defaults.removeObject(forKey: "AppleLanguages") }
+}
 func L(_ k: String) -> String { let s = strings[k]!; return lang == "en" ? s.en : s.ru }
 
 struct Format { let ext: String; let title: String }
@@ -774,6 +780,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
 
     @objc func changeLang() {
         lang = langPopup.indexOfSelectedItem == 1 ? "en" : "ru"
+        applyLanguage()
         fmtWindow?.close(); fmtWindow = nil; fmtButtons = [:] // пересоберётся на новом языке
         refresh()
     }
@@ -806,6 +813,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
 
 // MARK: - Запуск
 
+applyLanguage()
 let nsApp = NSApplication.shared
 let delegate = App()
 nsApp.delegate = delegate
