@@ -287,14 +287,24 @@ final class App: NSObject, NSApplicationDelegate {
         return false
     }
 
-    // Ссылка от расширения Finder: blankly://new?path=/папка
+    // Ссылка от расширения Finder: blankly://new?path=/папка[&ext=txt|folder]
+    // Без ext — полное меню Blankly, с ext — сразу спрашиваем имя.
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls where url.scheme == "blankly" && url.host == "new" {
-            let path = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-                .queryItems?.first(where: { $0.name == "path" })?.value ?? ""
+            let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            let path = items.first(where: { $0.name == "path" })?.value ?? ""
             var isDir: ObjCBool = false
             guard !path.isEmpty, FileManager.default.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue else { continue }
-            showMenu(in: URL(fileURLWithPath: path, isDirectory: true))
+            let dir = URL(fileURLWithPath: path, isDirectory: true)
+            guard let raw = items.first(where: { $0.name == "ext" })?.value else { showMenu(in: dir); continue }
+            let ext = raw == "folder" ? "" : raw
+            // только известные форматы: ссылку может открыть кто угодно
+            guard ext.isEmpty || formatGroups().joined().contains(where: { $0.ext == ext }) else { continue }
+            targetDir = dir
+            NSApp.activate(ignoringOtherApps: true)
+            let item = NSMenuItem()
+            item.representedObject = ext
+            pick(item)
         }
     }
 
