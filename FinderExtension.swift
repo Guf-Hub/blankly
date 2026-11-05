@@ -5,21 +5,21 @@ import Cocoa
 import FinderSync
 import UniformTypeIdentifiers
 
-private let ru = Locale.preferredLanguages.first?.hasPrefix("ru") == true
-
-// (расширение, название); "folder" — новая папка. Тот же список, что в главном меню Blankly.
-private let formats: [[(String, String)]] = [
-    [("txt", ru ? "Текст (.txt)" : "Text (.txt)"), ("md", "Markdown (.md)"), ("json", "JSON (.json)"),
-     ("csv", "CSV (.csv)"), ("html", "HTML (.html)"), ("py", "Python (.py)")],
-    [("docx", "Word (.docx)"), ("xlsx", "Excel (.xlsx)"), ("pptx", "PowerPoint (.pptx)")],
-    [("odt", ru ? "LibreOffice Текст (.odt)" : "LibreOffice Text (.odt)"),
-     ("ods", ru ? "LibreOffice Таблица (.ods)" : "LibreOffice Spreadsheet (.ods)"),
-     ("odp", ru ? "LibreOffice Презентация (.odp)" : "LibreOffice Presentation (.odp)")],
-]
-private let allExts = formats.flatMap { $0.map { $0.0 } }
-
 @objc(FinderSync)
 final class FinderSync: FIFinderSync {
+    static let ru = Locale.preferredLanguages.first?.hasPrefix("ru") == true
+
+    // (расширение, название); "folder" — новая папка. Тот же список, что в главном меню Blankly.
+    static let formats: [[(String, String)]] = [
+        [("txt", ru ? "Текст (.txt)" : "Text (.txt)"), ("md", "Markdown (.md)"), ("json", "JSON (.json)"),
+         ("csv", "CSV (.csv)"), ("html", "HTML (.html)"), ("py", "Python (.py)")],
+        [("docx", "Word (.docx)"), ("xlsx", "Excel (.xlsx)"), ("pptx", "PowerPoint (.pptx)")],
+        [("odt", ru ? "LibreOffice Текст (.odt)" : "LibreOffice Text (.odt)"),
+         ("ods", ru ? "LibreOffice Таблица (.ods)" : "LibreOffice Spreadsheet (.ods)"),
+         ("odp", ru ? "LibreOffice Презентация (.odp)" : "LibreOffice Presentation (.odp)")],
+    ]
+    static let allExts = formats.flatMap { $0.map { $0.0 } }
+
     override init() {
         super.init()
         FIFinderSyncController.default().directoryURLs = [URL(fileURLWithPath: "/")]
@@ -27,7 +27,7 @@ final class FinderSync: FIFinderSync {
 
     // Кнопка на панели окна Finder (добавляется через «Вид → Настроить панель инструментов»)
     override var toolbarItemName: String { "Blankly" }
-    override var toolbarItemToolTip: String { ru ? "Новый файл в этой папке" : "New file in this folder" }
+    override var toolbarItemToolTip: String { Self.ru ? "Новый файл в этой папке" : "New file in this folder" }
     override var toolbarItemImage: NSImage {
         let img = NSImage(systemSymbolName: "doc.badge.plus", accessibilityDescription: "Blankly") ?? NSImage()
         img.isTemplate = true // на панели Finder сам красит под тему
@@ -40,7 +40,7 @@ final class FinderSync: FIFinderSync {
             return formatsMenu() // сразу список форматов
         case .contextualMenuForContainer:
             let menu = NSMenu()
-            let item = NSMenuItem(title: ru ? "Новый файл" : "New File", action: nil, keyEquivalent: "")
+            let item = NSMenuItem(title: Self.ru ? "Новый файл" : "New File", action: nil, keyEquivalent: "")
             item.image = themed("doc.badge.plus")
             item.submenu = formatsMenu()
             menu.addItem(item)
@@ -52,17 +52,17 @@ final class FinderSync: FIFinderSync {
 
     func formatsMenu() -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(entry(ru ? "Новая папка" : "New Folder", tag: 0, symbol: "folder"))
-        for group in formats {
+        menu.addItem(entry(Self.ru ? "Новая папка" : "New Folder", tag: 0, symbol: "folder"))
+        for group in Self.formats {
             let shown = group.filter { canOpen($0.0) }
             if shown.isEmpty { continue }
             menu.addItem(.separator())
             for (ext, title) in shown {
-                menu.addItem(entry(title, tag: (allExts.firstIndex(of: ext) ?? 0) + 1, symbol: nil))
+                menu.addItem(entry(title, tag: (Self.allExts.firstIndex(of: ext) ?? 0) + 1, symbol: nil))
             }
         }
         menu.addItem(.separator())
-        menu.addItem(entry(ru ? "Другое… (мои шаблоны)" : "More… (my templates)", tag: -1, symbol: nil))
+        menu.addItem(entry(Self.ru ? "Другое… (мои шаблоны)" : "More… (my templates)", tag: -1, symbol: nil))
         return menu
     }
 
@@ -91,7 +91,7 @@ final class FinderSync: FIFinderSync {
         guard let dir = FIFinderSyncController.default().targetedURL() else { return }
         var q = [URLQueryItem(name: "path", value: dir.path)]
         if sender.tag == 0 { q.append(URLQueryItem(name: "ext", value: "folder")) }
-        if sender.tag > 0, sender.tag <= allExts.count { q.append(URLQueryItem(name: "ext", value: allExts[sender.tag - 1])) }
+        if sender.tag > 0, sender.tag <= Self.allExts.count { q.append(URLQueryItem(name: "ext", value: Self.allExts[sender.tag - 1])) }
         var c = URLComponents()
         c.scheme = "blankly"
         c.host = "new"
