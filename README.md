@@ -10,7 +10,7 @@ Press <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, pick a format, type
 <a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Download for macOS</b></a> &nbsp;·&nbsp; <a href="#support">♥ Support</a> &nbsp;·&nbsp; <b>English</b> | <a href="README.ru.md">Русский</a>
 
 <a href="https://github.com/Guf-Hub/blankly/releases/latest"><img src="https://img.shields.io/github/v/release/Guf-Hub/blankly?label=version" alt="version"></a>
-<a href="https://github.com/Guf-Hub/blankly/releases"><img src="https://img.shields.io/github/downloads/Guf-Hub/blankly/total" alt="downloads"></a>
+<a href="https://github.com/Guf-Hub/blankly/releases"><img src="https://img.shields.io/github/downloads/Guf-Hub/blankly/Blankly.dmg?label=installs" alt="installs"></a>
 <img src="https://img.shields.io/badge/macOS-13%2B-blue?logo=apple" alt="macOS 13+">
 <a href="https://github.com/Guf-Hub/blankly/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/Guf-Hub/blankly/test.yml?branch=main&label=tests" alt="tests"></a>
 <a href="LICENSE"><img src="https://img.shields.io/github/license/Guf-Hub/blankly" alt="MIT"></a>
@@ -102,7 +102,7 @@ brew trust --cask guf-hub/tap/blankly
 brew install --cask guf-hub/tap/blankly
 ```
 
-**Or manually:** download `Blankly-x.y.dmg` from [Releases](../../releases), open it and drag Blankly to Applications.
+**Or manually:** download `Blankly.dmg` from the [latest release](../../releases/latest), open it and drag Blankly to Applications.
 
 **First launch** (both ways):
 
