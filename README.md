@@ -38,7 +38,11 @@ Then choose **New Folder** or a file format, type a name and press Enter. The na
 - Files are empty, except `html` (an HTML5 starter page) and Office documents.
 - Office files are real empty documents, not zero-byte files, so Word, Excel and LibreOffice open them without complaints.
 
-**Your own templates.** Settings → **Templates Folder…** opens a folder. Any file you put there shows up in the menu under *My Templates*, and new files are copies of it — a `.py` with your boilerplate, a `.yaml` config, anything. In the Finder menu they are under **More…**.
+**Your own templates.** Settings → **Templates Folder…** opens a folder. Any file you put there shows up in the menu under *My Templates*, and new files are copies of it — a `.py` with your boilerplate, a `.yaml` config, anything. A **folder** in there works too: it shows up in the menu and is copied whole, with everything inside. In the Finder menu they are under **More…**.
+
+**Variables in templates.** In a template's file name and inside text templates (UTF-8), Blankly replaces `{date}` with `2026-11-05`, `{time}` with `14-30` and `{name}` with the name you typed. For a template folder this applies to the names of files inside it as well. Binary files (such as `.docx`) are copied untouched. The name suggested in the name dialog is the template's own name with `{date}` and `{time}` filled in.
+
+**From Clipboard.** If the clipboard holds text or an image, the menu has **From Clipboard…** (also in the Finder right-click menu). Text becomes `.txt`; valid JSON (an object or array) becomes `.json`; text starting with `<!DOCTYPE` or `<html` becomes `.html`. An image becomes `.png`. Blankly then asks for a name (default *From Clipboard*) and saves the file.
 
 ## Settings
 
@@ -51,6 +55,7 @@ Open the menu (Control + Option + N) → **Settings…** at the bottom.
 | Language | English or Русский. By default Blankly follows the system: Russian on a Russian Mac, English otherwise. |
 | Open at login | Starts Blankly in the background when you log in, so the shortcut always works. |
 | Finder right-click | **Turn On…** opens the macOS list of Finder extensions; enable Blankly there. |
+| Open file right after creating | Off by default. When on, a new file opens in its default app. A folder is only selected in Finder. If nothing can open the file, it is just selected. |
 | Check for updates daily | See [Updates](#updates). |
 | Templates Folder… | Opens the folder with your own templates. |
 
