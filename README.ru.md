@@ -1,4 +1,6 @@
-<img src="docs/icon.png" width="120" align="left" alt="">
+<table><tr>
+<td width="150" align="center" valign="middle"><img src="docs/icon.png" width="120" alt=""></td>
+<td valign="middle">
 
 <h1>Blankly</h1>
 
@@ -14,7 +16,8 @@
 <a href="LICENSE"><img src="https://img.shields.io/github/license/Guf-Hub/blankly" alt="MIT"></a>
 <a href="https://github.com/Guf-Hub/blankly/stargazers"><img src="https://img.shields.io/github/stars/Guf-Hub/blankly?style=social" alt="stars"></a>
 
-<br clear="left">
+</td>
+</tr></table>
 
 <p align="center"><img src="docs/demo.gif" width="600" alt="Blankly создаёт текстовый файл и папку на рабочем столе"></p>
 
@@ -151,14 +154,14 @@ zsh release.sh --notes "…" --notes-ru "…" # для автора: собра�
 
 ## Участие в разработке
 
-Pull request'ы приветствуются — см. [CONTRIBUTING.md](CONTRIBUTING.md) (на английском). Ошибки — в [Issues](../../issues), идеи и вопросы — в [Discussions](../../discussions).
+Pull request'ы приветствуются — см. [CONTRIBUTING.md](CONTRIBUTING.md) (на английском). Ошибки — в [Issues](../../issues/new/choose), идеи и вопросы — в [Discussions](../../discussions).
 
 ## Поддержать
 
 Blankly бесплатный и останется бесплатным. Если он экономит вам время и хочется сказать спасибо — небольшой донат поможет его развивать.
 
 <table><tr>
-<td><img src="docs/donate-qr.png" width="160" alt="QR-код адреса для донатов"></td>
+<td align="center" valign="middle"><img src="docs/donate-qr.png" width="160" alt="QR-код адреса для донатов"></td>
 <td>
 
 **USDT · сеть TON**
@@ -176,7 +179,7 @@ UQBQ3pthdJ3qGhAgNbeo95fsqeauO1R65JFuCPlVdbvvJEvF
 
 ## Автор
 
-[Guf-Hub](https://github.com/Guf-Hub). Идеи и ошибки — в [Issues](../../issues).
+[Guf-Hub](https://github.com/Guf-Hub). Идеи и ошибки — в [Issues](../../issues/new/choose).
 
 ## Лицензия
 

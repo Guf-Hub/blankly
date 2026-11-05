@@ -49,16 +49,16 @@ TAG=${BLANKLY_TAG:-v$VERSION}
 # sparkle:edSignature="…" length="…"
 SIGNATURE=$("$SPARKLE/bin/sign_update" --account app.blankly build/Blankly.zip)
 
-# Описание версии. Sparkle 2.9+ показывает Markdown сам (sparkle:descriptionFormat="markdown").
+# Описание версии. Sparkle 2.9+ показывает Markdown сам (sparkle:format="markdown").
 # CDATA нельзя прервать, поэтому «]]>» внутри текста разрезаем.
 cdata() { printf '%s' "<![CDATA[${1//]]>/]]]]><![CDATA[>}]]>" }
 DESCRIPTION=
 if [[ -n "$NOTES" ]]; then
   if [[ -n "$NOTES_RU" ]]; then
-    DESCRIPTION+="      <description sparkle:descriptionFormat=\"markdown\" xml:lang=\"en\">$(cdata "$NOTES")</description>"$'\n'
-    DESCRIPTION+="      <description sparkle:descriptionFormat=\"markdown\" xml:lang=\"ru\">$(cdata "$NOTES_RU")</description>"$'\n'
+    DESCRIPTION+="      <description sparkle:format=\"markdown\" xml:lang=\"en\">$(cdata "$NOTES")</description>"$'\n'
+    DESCRIPTION+="      <description sparkle:format=\"markdown\" xml:lang=\"ru\">$(cdata "$NOTES_RU")</description>"$'\n'
   else
-    DESCRIPTION+="      <description sparkle:descriptionFormat=\"markdown\">$(cdata "$NOTES")</description>"$'\n'
+    DESCRIPTION+="      <description sparkle:format=\"markdown\">$(cdata "$NOTES")</description>"$'\n'
   fi
 fi
 
