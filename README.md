@@ -1,4 +1,6 @@
-<img src="docs/icon.png" width="120" align="left" alt="">
+<table><tr>
+<td width="150" align="center" valign="middle"><img src="docs/icon.png" width="120" alt=""></td>
+<td valign="middle">
 
 <h1>Blankly</h1>
 
@@ -14,7 +16,8 @@ Press <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, pick a format, type
 <a href="LICENSE"><img src="https://img.shields.io/github/license/Guf-Hub/blankly" alt="MIT"></a>
 <a href="https://github.com/Guf-Hub/blankly/stargazers"><img src="https://img.shields.io/github/stars/Guf-Hub/blankly?style=social" alt="stars"></a>
 
-<br clear="left">
+</td>
+</tr></table>
 
 <p align="center"><img src="docs/demo.gif" width="600" alt="Blankly creating a text file and a folder on the Desktop"></p>
 
@@ -158,7 +161,7 @@ Pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Bugs go to
 Blankly is free and stays free. If it saves you time and you'd like to say thanks, a small tip helps keep it going.
 
 <table><tr>
-<td><img src="docs/donate-qr.png" width="160" alt="QR code of the donation address"></td>
+<td align="center" valign="middle"><img src="docs/donate-qr.png" width="160" alt="QR code of the donation address"></td>
 <td>
 
 **USDT · TON network**
