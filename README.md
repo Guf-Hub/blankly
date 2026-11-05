@@ -5,7 +5,7 @@
 <p align="center">Create a new file or folder right where you are on macOS.<br>
 Press <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, pick a format, type a name.</p>
 
-<p align="center"><a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Download for macOS</b></a></p>
+<p align="center"><a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Download for macOS</b></a> &nbsp;·&nbsp; <a href="#support">♥ Support</a></p>
 
 <p align="center"><b>English</b> | <a href="README.ru.md">Русский</a></p>
 
@@ -117,13 +117,24 @@ zsh build.sh --no-install # build only: build/Blankly.app, .zip and .dmg
 
 ## Support
 
-Blankly is free. If it saves you time and you'd like to say thanks — send **USDT on the TON network** to:
+Blankly is free and stays free. If it saves you time and you'd like to say thanks, a small tip helps keep it going.
+
+<table><tr>
+<td><img src="docs/donate-qr.png" width="160" alt="QR code of the donation address"></td>
+<td>
+
+**USDT · TON network**
 
 ```
 UQBQ3pthdJ3qGhAgNbeo95fsqeauO1R65JFuCPlVdbvvJEvF
 ```
 
-Only USDT and only on TON. Other coins or networks sent there will be lost.
+Scan the QR code in your wallet app or copy the address.
+
+⚠️ Only **USDT** and only on **TON**. Other coins or networks sent there will be lost.
+
+</td>
+</tr></table>
 
 ## Author
 

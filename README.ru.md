@@ -5,7 +5,7 @@
 <p align="center">Новый файл или папка там, где вы сейчас, на macOS.<br>
 Нажмите <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, выберите формат, введите имя.</p>
 
-<p align="center"><a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Скачать для macOS</b></a></p>
+<p align="center"><a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Скачать для macOS</b></a> &nbsp;·&nbsp; <a href="#поддержать">♥ Поддержать</a></p>
 
 <p align="center"><a href="README.md">English</a> | <b>Русский</b></p>
 
@@ -117,13 +117,24 @@ zsh build.sh --no-install # только собрать: build/Blankly.app, .zip
 
 ## Поддержать
 
-Blankly бесплатный. Если он экономит вам время и хочется сказать спасибо — отправьте **USDT в сети TON** на адрес:
+Blankly бесплатный и останется бесплатным. Если он экономит вам время и хочется сказать спасибо — небольшой донат поможет его развивать.
+
+<table><tr>
+<td><img src="docs/donate-qr.png" width="160" alt="QR-код адреса для донатов"></td>
+<td>
+
+**USDT · сеть TON**
 
 ```
 UQBQ3pthdJ3qGhAgNbeo95fsqeauO1R65JFuCPlVdbvvJEvF
 ```
 
-Только USDT и только в сети TON. Другие монеты или сети на этот адрес потеряются.
+Отсканируйте QR-код в приложении кошелька или скопируйте адрес.
+
+⚠️ Только **USDT** и только в сети **TON**. Другие монеты или сети на этот адрес потеряются.
+
+</td>
+</tr></table>
 
 ## Автор
 
