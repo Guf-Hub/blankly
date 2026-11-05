@@ -105,3 +105,5 @@ rm -rf "$APP"
 cp -R "$OUT" "$APP"
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP"
 echo "installed: $APP"
+# 6. Запустить заново в фоне, чтобы сочетание клавиш сразу работало
+open -a "$APP" --args --background
