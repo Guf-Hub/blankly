@@ -15,7 +15,10 @@ final class FinderSync: FIFinderSync {
         let ru = Locale.preferredLanguages.first?.hasPrefix("ru") == true
         let menu = NSMenu()
         let item = NSMenuItem(title: ru ? "Новый файл…" : "New File…", action: #selector(newFile(_:)), keyEquivalent: "")
-        item.image = NSImage(systemSymbolName: "doc.badge.plus", accessibilityDescription: nil)
+        // template — Finder перекрашивает значок под светлую и тёмную тему
+        let icon = NSImage(systemSymbolName: "doc.badge.plus", accessibilityDescription: nil)
+        icon?.isTemplate = true
+        item.image = icon
         menu.addItem(item)
         return menu
     }
