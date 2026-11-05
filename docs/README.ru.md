@@ -1,6 +1,6 @@
 <div align="center">
 <table><tr>
-<td width="150" align="center" valign="middle"><img src="docs/icon.png" width="120" alt=""></td>
+<td width="150" align="center" valign="middle"><img src="icon.png" width="120" alt=""></td>
 <td valign="middle" align="left">
 
 <h1>Blankly</h1>
@@ -8,20 +8,20 @@
 Новый файл или папка там, где вы сейчас, на macOS.<br>
 Нажмите <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, выберите формат, введите имя.
 
-<a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Скачать для macOS</b></a> &nbsp;·&nbsp; <a href="#поддержать">♥ Поддержать</a> &nbsp;·&nbsp; <a href="README.md">English</a> | <b>Русский</b>
+<a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Скачать для macOS</b></a> &nbsp;·&nbsp; <a href="#поддержать">♥ Поддержать</a> &nbsp;·&nbsp; <a href="../README.md">English</a> | <b>Русский</b>
 
 <a href="https://github.com/Guf-Hub/blankly/releases/latest"><img src="https://img.shields.io/github/v/release/Guf-Hub/blankly?label=version" alt="version"></a>
 <a href="https://github.com/Guf-Hub/blankly/releases"><img src="https://img.shields.io/github/downloads/Guf-Hub/blankly/Blankly.dmg?label=installs" alt="installs"></a>
 <img src="https://img.shields.io/badge/macOS-13%2B-blue?logo=apple" alt="macOS 13+">
 <a href="https://github.com/Guf-Hub/blankly/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/Guf-Hub/blankly/test.yml?branch=main&label=tests" alt="tests"></a>
-<a href="LICENSE"><img src="https://img.shields.io/github/license/Guf-Hub/blankly" alt="MIT"></a>
+<a href="../LICENSE"><img src="https://img.shields.io/github/license/Guf-Hub/blankly" alt="MIT"></a>
 <a href="https://github.com/Guf-Hub/blankly/stargazers"><img src="https://img.shields.io/github/stars/Guf-Hub/blankly?style=social" alt="stars"></a>
 
 </td>
 </tr></table>
 </div>
 
-<p align="center"><img src="docs/demo.gif" width="600" alt="Blankly создаёт текстовый файл и папку на рабочем столе"></p>
+<p align="center"><img src="demo.gif" width="600" alt="Blankly создаёт текстовый файл и папку на рабочем столе"></p>
 
 ---
 
@@ -104,7 +104,7 @@ brew trust --cask guf-hub/tap/blankly
 brew install --cask guf-hub/tap/blankly
 ```
 
-**Или вручную:** скачайте `Blankly.dmg` из [последнего релиза](../../releases/latest), откройте и перетащите Blankly в «Программы».
+**Или вручную:** скачайте `Blankly.dmg` из [последнего релиза](https://github.com/Guf-Hub/blankly/releases/latest), откройте и перетащите Blankly в «Программы».
 
 **Первый запуск** (в обоих случаях):
 
@@ -144,7 +144,7 @@ zsh release.sh --notes "…" --notes-ru "…" # для автора: собра�
 
 **Выпуск релиза (для автора).** `--notes` (Markdown) попадает и в релиз на GitHub, и в окно обновления Blankly; `--notes-ru` добавляет русский текст — его увидят на Mac с русским языком. Остальные аргументы уходят в `gh release create` (например, `--prerelease`).
 
-Локально сборка подписывается ad-hoc. Сборку с подписью Developer ID и нотаризацией Apple делает GitHub Actions: запустите workflow **release-build** (Actions → release-build → Run workflow), затем опубликуйте результат командой `zsh release.sh --from-ci <номер-прогона> --notes "…"`. Архив обновления по-прежнему подписывается ключом Sparkle на Mac автора. Если секретов подписи нет, workflow просто соберёт ad-hoc-версию. Подробности — в [CONTRIBUTING.md](CONTRIBUTING.md#code-signing-maintainers) (на английском).
+Локально сборка подписывается ad-hoc. Сборку с подписью Developer ID и нотаризацией Apple делает GitHub Actions: запустите workflow **release-build** (Actions → release-build → Run workflow), затем опубликуйте результат командой `zsh release.sh --from-ci <номер-прогона> --notes "…"`. Архив обновления по-прежнему подписывается ключом Sparkle на Mac автора. Если секретов подписи нет, workflow просто соберёт ad-hoc-версию. Подробности — в [CONTRIBUTING.md](../CONTRIBUTING.md#code-signing-maintainers) (на английском).
 
 Первая сборка скачивает [Sparkle](https://github.com/sparkle-project/Sparkle) 2.10.0 в `.vendor/` и сверяет его SHA-256.
 
@@ -156,14 +156,14 @@ zsh release.sh --notes "…" --notes-ru "…" # для автора: собра�
 
 ## Участие в разработке
 
-Pull request'ы приветствуются — см. [CONTRIBUTING.md](CONTRIBUTING.md) (на английском). Ошибки — в [Issues](../../issues/new/choose), идеи и вопросы — в [Discussions](../../discussions).
+Pull request'ы приветствуются — см. [CONTRIBUTING.md](../CONTRIBUTING.md) (на английском). Ошибки — в [Issues](https://github.com/Guf-Hub/blankly/issues/new/choose), идеи и вопросы — в [Discussions](https://github.com/Guf-Hub/blankly/discussions).
 
 ## Поддержать
 
 Blankly бесплатный и останется бесплатным. Если он экономит вам время и хочется сказать спасибо — небольшой донат поможет его развивать.
 
 <table><tr>
-<td align="center" valign="middle"><img src="docs/donate-qr.png" width="160" alt="QR-код адреса для донатов"></td>
+<td align="center" valign="middle"><img src="donate-qr.png" width="160" alt="QR-код адреса для донатов"></td>
 <td>
 
 **USDT · сеть TON**
@@ -181,7 +181,7 @@ UQBQ3pthdJ3qGhAgNbeo95fsqeauO1R65JFuCPlVdbvvJEvF
 
 ## Автор
 
-[Guf-Hub](https://github.com/Guf-Hub). Идеи и ошибки — в [Issues](../../issues/new/choose).
+[Guf-Hub](https://github.com/Guf-Hub). Идеи и ошибки — в [Issues](https://github.com/Guf-Hub/blankly/issues/new/choose).
 
 ## Лицензия
 
