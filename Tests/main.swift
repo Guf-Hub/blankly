@@ -6,6 +6,7 @@ testNames()
 testShortcuts()
 testStrings()
 testFormatOrder()
+testCreation()
 testTemplates(dir: templatesDir)
 
 print(failures == 0 ? "OK: \(checks) проверок" : "FAILED: \(failures) из \(checks)")

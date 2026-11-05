@@ -111,6 +111,58 @@ func freeURL(in dir: URL, base: String, ext: String) -> URL {
     return url
 }
 
+// MARK: - Шаблоны: переменные
+
+// {date} → 2026-11-05, {time} → 14-30, {name} → введённое имя
+func fillVars(_ s: String, name: String, now: Date = Date()) -> String {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.dateFormat = "yyyy-MM-dd"
+    let date = f.string(from: now)
+    f.dateFormat = "HH-mm"
+    let time = f.string(from: now)
+    return s.replacingOccurrences(of: "{date}", with: date)
+        .replacingOccurrences(of: "{time}", with: time)
+        .replacingOccurrences(of: "{name}", with: name)
+}
+
+// Содержимое файла-шаблона: текст в utf-8 (без нулевых байтов) подставляем, остальное — как есть
+func fillData(_ data: Data, name: String, now: Date = Date()) -> Data {
+    guard !data.contains(0), let text = String(data: data, encoding: .utf8) else { return data }
+    return Data(fillVars(text, name: name, now: now).utf8)
+}
+
+// Копия шаблона (файл или папка целиком) в dst; в папке подставляем и имена внутри
+func copyTemplate(from src: URL, to dst: URL, name: String, now: Date = Date()) throws {
+    let fm = FileManager.default
+    var isDir: ObjCBool = false
+    fm.fileExists(atPath: src.path, isDirectory: &isDir)
+    if isDir.boolValue {
+        try fm.createDirectory(at: dst, withIntermediateDirectories: false)
+        for item in try fm.contentsOfDirectory(at: src, includingPropertiesForKeys: nil) where item.lastPathComponent != ".DS_Store" {
+            let child = fillVars(item.lastPathComponent, name: name, now: now).replacingOccurrences(of: "/", with: "-")
+            try copyTemplate(from: item, to: dst.appendingPathComponent(child), name: name, now: now)
+        }
+    } else {
+        try fm.copyItem(at: src, to: dst)
+        let data = try Data(contentsOf: dst)
+        let filled = fillData(data, name: name, now: now)
+        if filled != data { try filled.write(to: dst) } // запись поверх сохраняет права файла
+    }
+}
+
+// MARK: - Буфер обмена
+
+// Расширение для текста из буфера: JSON-объект или массив → json, HTML-документ → html, иначе txt
+func clipboardExt(text: String) -> String {
+    let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    let head = t.prefix(15).lowercased()
+    if head.hasPrefix("<!doctype") || head.hasPrefix("<html") { return "html" }
+    if t.hasPrefix("{") || t.hasPrefix("["),
+       (try? JSONSerialization.jsonObject(with: Data(t.utf8))) != nil { return "json" }
+    return "txt"
+}
+
 // MARK: - Сочетания клавиш
 
 func carbonMods(_ f: NSEvent.ModifierFlags) -> UInt32 {

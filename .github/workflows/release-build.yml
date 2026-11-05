@@ -1,0 +1,88 @@
+name: release-build
+# Ручной запуск: собрать Blankly, подписать Developer ID и нотаризовать (если заданы секреты).
+# Без секретов получится та же ad-hoc-сборка, что и локально.
+# Релиз публикует только владелец: zsh release.sh --from-ci <run-id> --notes "…"
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Версия (например 1.4). Пусто — взять из build.sh"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    env:
+      MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+      MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      NOTARY_KEY_P8_BASE64: ${{ secrets.NOTARY_KEY_P8_BASE64 }}
+      NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+      NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check signing secrets
+        id: secrets
+        run: |
+          missing=
+          for n in MACOS_CERT_P12_BASE64 MACOS_CERT_PASSWORD APPLE_TEAM_ID NOTARY_KEY_P8_BASE64 NOTARY_KEY_ID NOTARY_ISSUER_ID; do
+            [ -n "${!n}" ] || missing="$missing $n"
+          done
+          if [ -z "$missing" ]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No signing secrets (missing:$missing). Building ad-hoc, not notarized."
+          fi
+
+      - name: Import Developer ID certificate
+        if: steps.secrets.outputs.signed == 'true'
+        run: |
+          KC="$RUNNER_TEMP/blankly.keychain-db"
+          KC_PASS=$(uuidgen)
+          echo "::add-mask::$KC_PASS"
+          echo "$MACOS_CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KC_PASS" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KC_PASS" "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KC" -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign >/dev/null
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PASS" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" login.keychain-db
+          rm -f "$RUNNER_TEMP/cert.p12"
+          IDENTITY=$(security find-identity -v -p codesigning "$KC" | sed -n "s/.*\"\(Developer ID Application: .*($APPLE_TEAM_ID)\)\".*/\1/p" | head -1)
+          [ -n "$IDENTITY" ] || { echo "::error::Developer ID Application certificate for the team not found in the .p12"; exit 1; }
+          echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          echo "NOTARY_KEY_PATH=$RUNNER_TEMP/notary.p8" >> "$GITHUB_ENV"
+          echo "$NOTARY_KEY_P8_BASE64" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+
+      - name: Build
+        env:
+          BLANKLY_VERSION: ${{ inputs.version }}
+        run: |
+          [ -n "$BLANKLY_VERSION" ] || unset BLANKLY_VERSION
+          zsh build.sh --no-install
+
+      - name: Notarize and staple
+        if: steps.secrets.outputs.signed == 'true'
+        run: |
+          VERSION=$(defaults read "$PWD/build/Blankly.app/Contents/Info.plist" CFBundleShortVersionString)
+          zsh sign.sh notarize build/Blankly.app "$VERSION"
+
+      - name: Cleanup keys
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/notary.p8" "$RUNNER_TEMP/cert.p12"
+          security delete-keychain "$RUNNER_TEMP/blankly.keychain-db" 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Blankly
+          path: |
+            build/Blankly.zip
+            build/Blankly-*.dmg
+          if-no-files-found: error

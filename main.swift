@@ -28,6 +28,10 @@ var hotKeyMods: UInt32 {
     get { defaults.object(forKey: "mods") as? UInt32 ?? UInt32(controlKey | optionKey) }
     set { defaults.set(newValue, forKey: "mods") }
 }
+var openAfterCreate: Bool {
+    get { defaults.object(forKey: "openAfterCreate") as? Bool ?? false }
+    set { defaults.set(newValue, forKey: "openAfterCreate") }
+}
 // Быстрые клавиши форматов: расширение ("" — папка) → [код клавиши, модификаторы]
 var formatKeys: [String: [Int]] {
     get { defaults.dictionary(forKey: "formatKeys") as? [String: [Int]] ?? [:] }
@@ -79,15 +83,20 @@ func starterText(_ ext: String) -> String {
     """
 }
 
-// Свои шаблоны: любой файл в этой папке появляется в меню, новый файл — его копия.
+// Свои шаблоны: любой файл или папка в этой папке появляется в меню, новый файл — его копия.
 let userTemplatesDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
     .appendingPathComponent("Blankly/Templates", isDirectory: true)
 
+func isFolder(_ url: URL) -> Bool { (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
+
 func userTemplates() -> [URL] {
     let items = (try? FileManager.default.contentsOfDirectory(
-        at: userTemplatesDir, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles])) ?? []
+        at: userTemplatesDir, includingPropertiesForKeys: [.isRegularFileKey, .isDirectoryKey], options: [.skipsHiddenFiles])) ?? []
     return items
-        .filter { (try? $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true && !$0.pathExtension.isEmpty }
+        .filter {
+            let r = try? $0.resourceValues(forKeys: [.isRegularFileKey, .isDirectoryKey])
+            return r?.isDirectory == true || (r?.isRegularFile == true && !$0.pathExtension.isEmpty)
+        }
         .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
 }
 
@@ -122,14 +131,16 @@ func cleanBase(_ typed: String, ext: String, fallback: String) -> String {
     return s.isEmpty ? fallback : s
 }
 
-// template — свой шаблон пользователя (копируется как есть)
+// template — свой шаблон пользователя (файл или папка; {date}, {time}, {name} подставляются)
 func create(ext: String, base: String, in dir: URL, template: URL? = nil) -> URL? {
     let fm = FileManager.default
     let url = freeURL(in: dir, base: base, ext: ext)
     do {
-        if ext.isEmpty {
+        if let template {
+            try copyTemplate(from: template, to: url, name: base)
+        } else if ext.isEmpty {
             try fm.createDirectory(at: url, withIntermediateDirectories: false)
-        } else if let tpl = template ?? Bundle.main.url(forResource: "empty", withExtension: ext, subdirectory: "templates") {
+        } else if let tpl = Bundle.main.url(forResource: "empty", withExtension: ext, subdirectory: "templates") {
             try fm.copyItem(at: tpl, to: url)
         } else {
             try Data(starterText(ext).utf8).write(to: url, options: .withoutOverwriting)
@@ -238,6 +249,13 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
             guard !path.isEmpty, FileManager.default.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue else { continue }
             let dir = URL(fileURLWithPath: path, isDirectory: true)
             guard let raw = items.first(where: { $0.name == "ext" })?.value else { showMenu(in: dir); continue }
+            if raw == "clipboard" { // буфер читаем здесь: у расширения Finder в песочнице доступа к нему может не быть
+                targetDir = dir
+                clickPoint = NSEvent.mouseLocation
+                NSApp.activate(ignoringOtherApps: true)
+                pasteFromClipboard()
+                continue
+            }
             let ext = raw == "folder" ? "" : raw
             // только известные форматы: ссылку может открыть кто угодно
             guard ext.isEmpty || formatGroups().joined().contains(where: { $0.ext == ext }) else { continue }
@@ -290,18 +308,24 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
                 : UTType(filenameExtension: f.ext).map { NSWorkspace.shared.icon(for: $0) }
             menu.addItem(item(f.title, ext: f.ext, icon: icon))
         }
-        let mine = userTemplates().filter { appFor($0.pathExtension) != nil }
+        let mine = userTemplates().filter { isFolder($0) || appFor($0.pathExtension) != nil }
         if !mine.isEmpty {
             menu.addItem(.separator())
             let h = NSMenuItem(title: L("myTemplates"), action: nil, keyEquivalent: "")
             h.isEnabled = false
             menu.addItem(h)
             for t in mine {
-                let it = item(t.deletingPathExtension().lastPathComponent + " (.\(t.pathExtension))",
+                let it = item(isFolder(t) ? t.lastPathComponent : t.deletingPathExtension().lastPathComponent + " (.\(t.pathExtension))",
                               ext: t.pathExtension, icon: NSWorkspace.shared.icon(forFile: t.path))
                 it.representedObject = t
                 menu.addItem(it)
             }
+        }
+        if clipboardContent() != nil {
+            menu.addItem(.separator())
+            let c = item(L("fromClip"), ext: "", icon: NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: nil))
+            c.representedObject = "clipboard"
+            menu.addItem(c)
         }
         menu.addItem(.separator())
         let s = NSMenuItem(title: L("settings") + "   " + shortcutText(code: hotKeyCode, mods: hotKeyMods),
@@ -337,13 +361,56 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
 
     @objc func pick(_ sender: NSMenuItem) {
         // representedObject: расширение (встроенный формат, "" — папка) или URL своего шаблона
+        if sender.representedObject as? String == "clipboard" { pasteFromClipboard(); return }
         let template = sender.representedObject as? URL
-        guard let ext = template?.pathExtension ?? sender.representedObject as? String else { return }
-        let fallback = ext.isEmpty ? L("folder") : L("base")
+        guard let ext = template.map({ isFolder($0) ? "" : $0.pathExtension }) ?? sender.representedObject as? String else { return }
+        var fallback = ext.isEmpty ? L("folder") : L("base")
+        if let template { // имя шаблона с датой и временем — подсказка в окне имени
+            let hint = fillVars(template.deletingPathExtension().lastPathComponent, name: "").trimmingCharacters(in: .whitespaces)
+            if !hint.isEmpty { fallback = isFolder(template) ? fillVars(template.lastPathComponent, name: "").trimmingCharacters(in: .whitespaces) : hint }
+        }
         guard let base = askName(ext: ext, fallback: fallback) else { return }
         if let url = create(ext: ext, base: base, in: targetDir, template: template) {
-            select(url)
+            reveal(url)
         } else {
+            NSSound.beep()
+            let a = NSAlert()
+            a.messageText = String(format: L("failTitle"), base)
+            a.informativeText = L("failText")
+            a.runModal()
+        }
+    }
+
+    // Созданное выделяем; если включено «открывать сразу» — файл ещё и открывается в программе по умолчанию
+    // (нечем открыть — просто остаётся выделенным; папка всегда только выделяется)
+    func reveal(_ url: URL) {
+        select(url)
+        if openAfterCreate, !isFolder(url), NSWorkspace.shared.urlForApplication(toOpen: url) != nil {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    // Что лежит в буфере: текст → .txt/.json/.html, картинка → .png
+    func clipboardContent() -> (ext: String, data: Data)? {
+        let pb = NSPasteboard.general
+        if let text = pb.string(forType: .string), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return (clipboardExt(text: text), Data(text.utf8))
+        }
+        if let png = pb.data(forType: .png) { return ("png", png) }
+        if let tiff = pb.data(forType: .tiff), let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+            return ("png", png)
+        }
+        return nil
+    }
+
+    func pasteFromClipboard() {
+        guard let clip = clipboardContent() else { NSSound.beep(); return }
+        guard let base = askName(ext: clip.ext, fallback: L("clipName")) else { return }
+        let url = freeURL(in: targetDir, base: base, ext: clip.ext)
+        do {
+            try clip.data.write(to: url, options: .withoutOverwriting)
+            reveal(url)
+        } catch {
             NSSound.beep()
             let a = NSAlert()
             a.messageText = String(format: L("failTitle"), base)
@@ -472,6 +539,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
     let langPopup = NSPopUpButton()
     let loginBox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     let updatesBox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    let openBox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     let finderLabel = NSTextField(labelWithString: "")
     let finderButton = NSButton()
     let version = NSTextField(labelWithString: "")
@@ -492,7 +560,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
 
     init(app: App) {
         self.app = app
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 380, height: 394),
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 380, height: 424),
                           styleMask: [.titled, .closable], backing: .buffered, defer: false)
         super.init()
         window.isReleasedWhenClosed = false
@@ -522,6 +590,8 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         loginBox.target = self; loginBox.action = #selector(toggleLogin)
         updatesBox.frame = NSRect(x: 20, y: 172, width: 340, height: 20)
         updatesBox.target = self; updatesBox.action = #selector(toggleUpdates)
+        openBox.frame = NSRect(x: 20, y: 172, width: 340, height: 20)
+        openBox.target = self; openBox.action = #selector(toggleOpenAfter)
         finderLabel.frame = NSRect(x: 20, y: 134, width: 230, height: 20)
         finderButton.frame = NSRect(x: 245, y: 127, width: 120, height: 32)
         finderButton.bezelStyle = .rounded
@@ -538,8 +608,10 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         templatesHint.frame = NSRect(x: 20, y: 46, width: 340, height: 34)
         templatesHint.font = .systemFont(ofSize: 11); templatesHint.textColor = .secondaryLabelColor
 
-        [hotLabel, hotButton, note, fmtLabel, fmtButton, langLabel, langPopup, loginBox, updatesBox, finderLabel, finderButton, templatesButton, templatesHint, version]
+        [hotLabel, hotButton, note, fmtLabel, fmtButton, langLabel, langPopup, loginBox, updatesBox, openBox, finderLabel, finderButton, templatesButton, templatesHint, version]
             .forEach { v.addSubview($0) }
+        // окно выросло на строку под «Открывать сразу»: всё от «Проверять обновления» и выше сдвигаем вверх
+        v.subviews.filter { $0.frame.minY >= 172 && $0 !== openBox }.forEach { $0.frame.origin.y += 30 }
     }
 
     func refresh() {
@@ -555,6 +627,8 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         finderButton.title = L("finderBtn")
         finderButton.isHidden = finderOn
         updatesBox.state = checkUpdates ? .on : .off
+        openBox.title = L("openAfter")
+        openBox.state = openAfterCreate ? .on : .off
         templatesButton.title = L("templatesBtn")
         templatesHint.stringValue = L("templatesHint")
         hotButton.title = shortcutText(code: hotKeyCode, mods: hotKeyMods)
@@ -841,6 +915,8 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
     @objc func openFinderExtensions() {
         FIFinderSyncController.showExtensionManagementInterface()
     }
+
+    @objc func toggleOpenAfter() { openAfterCreate = openBox.state == .on }
 
     @objc func toggleUpdates() {
         checkUpdates = updatesBox.state == .on

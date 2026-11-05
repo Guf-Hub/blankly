@@ -39,7 +39,11 @@ Then choose **New Folder** or a file format, type a name and press Enter. The na
 - Files are empty, except `html` (an HTML5 starter page) and Office documents.
 - Office files are real empty documents, not zero-byte files, so Word, Excel and LibreOffice open them without complaints.
 
-**Your own templates.** Settings → **Templates Folder…** opens a folder. Any file you put there shows up in the menu under *My Templates*, and new files are copies of it — a `.py` with your boilerplate, a `.yaml` config, anything. In the Finder menu they are under **More…**.
+**Your own templates.** Settings → **Templates Folder…** opens a folder. Any file you put there shows up in the menu under *My Templates*, and new files are copies of it — a `.py` with your boilerplate, a `.yaml` config, anything. A **folder** in there works too: it shows up in the menu and is copied whole, with everything inside. In the Finder menu they are under **More…**.
+
+**Variables in templates.** In a template's file name and inside text templates (UTF-8), Blankly replaces `{date}` with `2026-11-05`, `{time}` with `14-30` and `{name}` with the name you typed. For a template folder this applies to the names of files inside it as well. Binary files (such as `.docx`) are copied untouched. The name suggested in the name dialog is the template's own name with `{date}` and `{time}` filled in.
+
+**From Clipboard.** If the clipboard holds text or an image, the menu has **From Clipboard…** (also in the Finder right-click menu). Text becomes `.txt`; valid JSON (an object or array) becomes `.json`; text starting with `<!DOCTYPE` or `<html` becomes `.html`. An image becomes `.png`. Blankly then asks for a name (default *From Clipboard*) and saves the file.
 
 ## Settings
 
@@ -52,6 +56,7 @@ Open the menu (Control + Option + N) → **Settings…** at the bottom.
 | Language | English or Русский. By default Blankly follows the system: Russian on a Russian Mac, English otherwise. |
 | Open at login | Starts Blankly in the background when you log in, so the shortcut always works. |
 | Finder right-click | **Turn On…** opens the macOS list of Finder extensions; enable Blankly there. |
+| Open file right after creating | Off by default. When on, a new file opens in its default app. A folder is only selected in Finder. If nothing can open the file, it is just selected. |
 | Check for updates daily | See [Updates](#updates). |
 | Templates Folder… | Opens the folder with your own templates. |
 
@@ -120,8 +125,12 @@ Needs Xcode or Command Line Tools.
 ```bash
 zsh build.sh              # build and install to /Applications
 zsh build.sh --no-install # build only: build/Blankly.app, .zip and .dmg
-zsh release.sh --notes "…" # maintainer: build, sign the update, publish a GitHub release
+zsh release.sh --notes "…" --notes-ru "…" # maintainer: build, sign the update, publish a GitHub release
 ```
+
+**Releasing (maintainer).** `--notes` (Markdown) goes both into the GitHub release and into the update window of Blankly; `--notes-ru` adds the Russian text, shown on a Russian Mac. Other arguments go to `gh release create` (for example `--prerelease`).
+
+By default the build is signed ad-hoc on your Mac. A Developer ID build, signed and notarized by Apple, comes from GitHub Actions: run the **release-build** workflow (Actions → release-build → Run workflow), then publish its result with `zsh release.sh --from-ci <run-id> --notes "…"`. The update archive is still signed with the Sparkle key on the maintainer's Mac. Without the signing secrets the workflow simply makes an ad-hoc build. Details: [CONTRIBUTING.md](CONTRIBUTING.md#code-signing-maintainers).
 
 The first build downloads [Sparkle](https://github.com/sparkle-project/Sparkle) 2.10.0 into `.vendor/` and checks its SHA-256.
 
@@ -130,6 +139,10 @@ The first build downloads [Sparkle](https://github.com/sparkle-project/Sparkle) 
 ### Tests
 
 `zsh test.sh` compiles `Core.swift` and `FormatOrder.swift` with `Tests/*.swift` using plain `swiftc` (no Xcode project) and exits non-zero on any failure. It checks name numbering, shortcut conflicts, that every string has every language, and that every Office template is a valid zip. CI runs it on each pull request.
+
+## Contributing
+
+Pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Bugs go to [Issues](../../issues), ideas and questions to [Discussions](../../discussions).
 
 ## Support
 
