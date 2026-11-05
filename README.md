@@ -65,7 +65,7 @@ Open the menu (Control + Option + N) → **Settings…** at the bottom.
 
 | Setting | What it does |
 |---|---|
-| Shortcut | Click the field and press a new combination. It must include ⌘, ⌃ or ⌥. Esc cancels. If another app already uses it, Blankly says so. |
+| Shortcut | Click the field and press a new combination. It must include ⌘, ⌃ or ⌥. Esc or switching to another app cancels. If another app already uses it, Blankly says so. |
 | Formats | **Set Up…** opens a list: New Folder and every format. Each row has a **Show** checkbox (at least one item must stay), a shortcut field and **Open in…**, the app that opens this file type by default (macOS asks you to confirm the change). Drag rows to set the order. For a shortcut, click a field and press **Control + Option** + a key. Pressing it later asks for a name and creates that file right away, no menu. The menu shows the shortcut next to its format. Blankly warns if the shortcut is already used by its menu, another format, macOS (Settings → Keyboard → Keyboard Shortcuts) or another app. Control + Option is required because macOS can't tell which shortcuts other apps use inside their own menus, and those rarely use this pair. |
 | Language | English, Русский, Deutsch, Français, Español, 简体中文 or 日本語. By default Blankly follows the system language and falls back to English. |
 | Open at login | Starts Blankly in the background when you log in, so the shortcut always works. |
@@ -148,11 +148,23 @@ By default the build is signed ad-hoc on your Mac. A Developer ID build, signed 
 
 The first build downloads [Sparkle](https://github.com/sparkle-project/Sparkle) 2.10.0 into `.vendor/` and checks its SHA-256.
 
-`main.swift` is the app, `Core.swift` holds the logic without UI (names, strings, shortcut conflicts), `FormatOrder.swift` the format order and hiding (shared with the Finder extension), `FinderExtension.swift` is the Finder extension, `icon.swift` draws the icon, `Resources/templates` holds the empty Office documents.
+| File | What's in it |
+|---|---|
+| `main.swift` | The app: menu, file creation, shortcuts, Settings and Formats windows |
+| `Core.swift` | Logic without UI: strings in 7 languages, names, templates and variables, clipboard, shortcut conflicts |
+| `Formats.swift` | The list of built-in formats (shared with the Finder extension) |
+| `FormatOrder.swift` | Format order and hiding (shared with the Finder extension) |
+| `Languages.swift` | Supported languages and choosing one (shared with the Finder extension) |
+| `FinderExtension.swift` | The Finder extension: right-click menu and toolbar button |
+| `icon.swift` | Draws the app icon |
+| `Resources/templates` | Empty Office documents |
+| `build.sh`, `sign.sh`, `release.sh` | Build, sign, publish |
+
+Notes for AI coding agents: [AGENTS.md](AGENTS.md).
 
 ### Tests
 
-`zsh test.sh` compiles `Core.swift` and `FormatOrder.swift` with `Tests/*.swift` using plain `swiftc` (no Xcode project) and exits non-zero on any failure. It checks name numbering, shortcut conflicts, that every string has every language, and that every Office template is a valid zip. CI runs it on each pull request.
+`zsh test.sh` compiles everything except `main.swift` (logic, format list, format order, languages and the Finder extension) with `Tests/*.swift` using plain `swiftc` (no Xcode project) and exits non-zero on any failure. It checks name numbering, shortcut conflicts, that every string exists in every language, the format order, that the longest names fit the Formats window, templates and their variables (including folder templates), and that every Office template is a valid zip. CI runs it and a full build on each pull request.
 
 ## Contributing
 
