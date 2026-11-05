@@ -35,6 +35,7 @@ Then choose **New Folder** or a file format, type a name and press Enter. The na
 **Formats:** `txt`, `md`, `json`, `csv`, `html`, `py`, `docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`.
 
 - Only formats your Mac can open are shown. No Word or Pages — no `.docx` in the menu.
+- Hide formats you never use and drag the rest into your own order in **Settings → Formats**. The menu, the Finder right-click and the toolbar button all follow it. A hidden format keeps its shortcut.
 - Files are empty, except `html` (an HTML5 starter page) and Office documents.
 - Office files are real empty documents, not zero-byte files, so Word, Excel and LibreOffice open them without complaints.
 
@@ -51,7 +52,7 @@ Open the menu (Control + Option + N) → **Settings…** at the bottom.
 | Setting | What it does |
 |---|---|
 | Shortcut | Click the field and press a new combination. It must include ⌘, ⌃ or ⌥. Esc cancels. If another app already uses it, Blankly says so. |
-| Format shortcuts | **Set Up…** opens a list: New Folder and every format. Click a field and press **Control + Option** + a key. Pressing it later asks for a name and creates that file right away, no menu. Blankly warns if the shortcut is already used by its menu, another format, macOS (Settings → Keyboard → Keyboard Shortcuts) or another app. Control + Option is required because macOS can't tell which shortcuts other apps use inside their own menus, and those rarely use this pair. |
+| Formats | **Set Up…** opens a list: New Folder and every format. Each row has a **Show** checkbox (at least one item must stay), a shortcut field and **Open in…**, the app that opens this file type by default (macOS asks you to confirm the change). Drag rows to set the order. For a shortcut, click a field and press **Control + Option** + a key. Pressing it later asks for a name and creates that file right away, no menu. Blankly warns if the shortcut is already used by its menu, another format, macOS (Settings → Keyboard → Keyboard Shortcuts) or another app. Control + Option is required because macOS can't tell which shortcuts other apps use inside their own menus, and those rarely use this pair. |
 | Language | English or Русский. By default Blankly follows the system: Russian on a Russian Mac, English otherwise. |
 | Open at login | Starts Blankly in the background when you log in, so the shortcut always works. |
 | Finder right-click | **Turn On…** opens the macOS list of Finder extensions; enable Blankly there. |
@@ -133,11 +134,11 @@ By default the build is signed ad-hoc on your Mac. A Developer ID build, signed 
 
 The first build downloads [Sparkle](https://github.com/sparkle-project/Sparkle) 2.10.0 into `.vendor/` and checks its SHA-256.
 
-`main.swift` is the app, `Core.swift` holds the logic without UI (names, strings, shortcut conflicts), `FinderExtension.swift` is the Finder extension, `icon.swift` draws the icon, `Resources/templates` holds the empty Office documents.
+`main.swift` is the app, `Core.swift` holds the logic without UI (names, strings, shortcut conflicts), `FormatOrder.swift` the format order and hiding (shared with the Finder extension), `FinderExtension.swift` is the Finder extension, `icon.swift` draws the icon, `Resources/templates` holds the empty Office documents.
 
 ### Tests
 
-`zsh test.sh` compiles `Core.swift` with `Tests/*.swift` using plain `swiftc` (no Xcode project) and exits non-zero on any failure. It checks name numbering, shortcut conflicts, that every string has every language, and that every Office template is a valid zip. CI runs it on each pull request.
+`zsh test.sh` compiles `Core.swift` and `FormatOrder.swift` with `Tests/*.swift` using plain `swiftc` (no Xcode project) and exits non-zero on any failure. It checks name numbering, shortcut conflicts, that every string has every language, and that every Office template is a valid zip. CI runs it on each pull request.
 
 ## Contributing
 
