@@ -1,6 +1,6 @@
 # Contributing to Blankly
 
-Thanks for helping! Blankly is a small macOS app: `main.swift` is the app, `FinderExtension.swift` is the Finder extension, `build.sh` builds everything with `swiftc` (no Xcode project).
+Thanks for helping! Blankly is a small macOS app: `main.swift` is the app, `FinderExtension.swift` is the Finder extension, `build.sh` builds everything with `swiftc` (no Xcode project). The full file list is in the [README](README.md#build-from-source); project rules (also for AI agents) are in [AGENTS.md](AGENTS.md).
 
 ## Sending a pull request
 
