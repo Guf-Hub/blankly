@@ -6,13 +6,18 @@ import AppKit
 import Carbon.HIToolbox
 import ServiceManagement
 import UniformTypeIdentifiers
+import FinderSync
 
 // MARK: - Настройки и язык
 
 let defaults = UserDefaults.standard
 var lang: String {
-    get { defaults.string(forKey: "lang") ?? "en" }
+    get { defaults.string(forKey: "lang") ?? (Locale.preferredLanguages.first?.hasPrefix("ru") == true ? "ru" : "en") }
     set { defaults.set(newValue, forKey: "lang") }
+}
+var checkUpdates: Bool {
+    get { defaults.object(forKey: "checkUpdates") as? Bool ?? true }
+    set { defaults.set(newValue, forKey: "checkUpdates") }
 }
 var hotKeyCode: UInt32 {
     get { defaults.object(forKey: "keyCode") as? UInt32 ?? UInt32(kVK_ANSI_N) }
@@ -50,6 +55,12 @@ let strings: [String: (ru: String, en: String)] = [
     "login": ("Запускать при входе в систему", "Open at login"),
     "loginFail": ("Не удалось изменить автозапуск", "Couldn’t change login item"),
     "myTemplates": ("Мои шаблоны", "My Templates"),
+    "updateAvail": ("Доступна версия %@ — скачать", "Version %@ is available — download"),
+    "finderRow": ("Правый клик в Finder: %@", "Finder right-click: %@"),
+    "on": ("включён", "on"),
+    "off": ("выключен", "off"),
+    "finderBtn": ("Включить…", "Turn On…"),
+    "checkUpdates": ("Проверять обновления раз в день", "Check for updates daily"),
     "templatesBtn": ("Папка шаблонов…", "Templates Folder…"),
     "templatesHint": ("Положите туда любой файл — он появится в меню,\nа новый файл будет его копией.",
                       "Put any file there — it shows up in the menu\nand new files are copies of it."),
@@ -167,6 +178,21 @@ func create(ext: String, base: String, in dir: URL, template: URL? = nil) -> URL
     return url
 }
 
+// MARK: - Обновления
+
+let repoAPI = URL(string: "https://api.github.com/repos/Guf-Hub/blankly/releases/latest")!
+let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
+
+// "1.10" > "1.9": сравниваем по числам
+func isNewer(_ a: String, than b: String) -> Bool {
+    let x = a.split(separator: ".").map { Int($0) ?? 0 }, y = b.split(separator: ".").map { Int($0) ?? 0 }
+    for i in 0..<max(x.count, y.count) {
+        let l = i < x.count ? x[i] : 0, r = i < y.count ? y[i] : 0
+        if l != r { return l > r }
+    }
+    return false
+}
+
 // MARK: - Сочетание клавиш
 
 let keyNames: [Int: String] = {
@@ -206,15 +232,20 @@ func carbonMods(_ f: NSEvent.ModifierFlags) -> UInt32 {
 
 final class App: NSObject, NSApplicationDelegate {
     var targetDir = desktopURL
+    var clickPoint = NSPoint.zero // где был курсор при вызове меню — туда ставим файл на рабочем столе
     var hotKeyRef: EventHotKeyRef?
     var settings: SettingsWindow?
     var launchedAtLogin = false
+    var launchedByLink = false
+    var update: (version: String, page: URL)?
+    var updateTimer: Timer?
 
     func applicationWillFinishLaunching(_ n: Notification) {
         // Запуск как объект входа (автозапуск) — меню не показываем.
         let ev = NSAppleEventManager.shared().currentAppleEvent
         launchedAtLogin = ev?.eventID == AEEventID(kAEOpenApplication)
             && ev?.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue == OSType(keyAELaunchedAsLogInItem)
+        launchedByLink = ev?.eventID == AEEventID(kAEGetURL)
     }
 
     func applicationDidFinishLaunching(_ n: Notification) {
@@ -223,7 +254,33 @@ final class App: NSObject, NSApplicationDelegate {
             openSettings(); settings?.note.stringValue = L("busy")
             return
         }
-        if !launchedAtLogin && !CommandLine.arguments.contains("--background") { showMenu() }
+        startUpdateChecks()
+        if !launchedAtLogin && !launchedByLink && !CommandLine.arguments.contains("--background") { showMenu() }
+    }
+
+    // Раз в день спрашиваем GitHub о последнем релизе. Никаких данных не отправляем.
+    func startUpdateChecks() {
+        updateTimer?.invalidate()
+        guard checkUpdates else { update = nil; return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { self.checkForUpdate() }
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 24 * 3600, repeats: true) { _ in self.checkForUpdate() }
+    }
+
+    func checkForUpdate() {
+        var req = URLRequest(url: repoAPI)
+        req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        URLSession.shared.dataTask(with: req) { data, _, _ in
+            guard let data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let tag = json["tag_name"] as? String,
+                  let page = (json["html_url"] as? String).flatMap(URL.init(string:)) else { return }
+            let v = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
+            DispatchQueue.main.async { self.update = isNewer(v, than: appVersion) ? (v, page) : nil }
+        }.resume()
+    }
+
+    @objc func openUpdate() {
+        if let u = update { NSWorkspace.shared.open(u.page) }
     }
 
     func applicationShouldHandleReopen(_ s: NSApplication, hasVisibleWindows f: Bool) -> Bool {
@@ -231,13 +288,46 @@ final class App: NSObject, NSApplicationDelegate {
         return false
     }
 
-    func showMenu() {
+    // Ссылка от расширения Finder: blankly://new?path=/папка[&ext=txt|folder]
+    // Без ext — полное меню Blankly, с ext — сразу спрашиваем имя.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where url.scheme == "blankly" && url.host == "new" {
+            let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            let path = items.first(where: { $0.name == "path" })?.value ?? ""
+            var isDir: ObjCBool = false
+            guard !path.isEmpty, FileManager.default.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue else { continue }
+            let dir = URL(fileURLWithPath: path, isDirectory: true)
+            guard let raw = items.first(where: { $0.name == "ext" })?.value else { showMenu(in: dir); continue }
+            let ext = raw == "folder" ? "" : raw
+            // только известные форматы: ссылку может открыть кто угодно
+            guard ext.isEmpty || formatGroups().joined().contains(where: { $0.ext == ext }) else { continue }
+            targetDir = dir
+            clickPoint = NSEvent.mouseLocation
+            NSApp.activate(ignoringOtherApps: true)
+            let item = NSMenuItem()
+            item.representedObject = ext
+            pick(item)
+        }
+    }
+
+    func showMenu(in dir: URL? = nil) {
         // Где пользователь, там и создаём: в Finder — открытая папка (или стол, если кликнул по столу),
         // в любой другой программе или из Дока — рабочий стол.
-        let inFinder = NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.finder"
-        targetDir = inFinder ? currentFinderFolder() : desktopURL
+        if let dir {
+            targetDir = dir
+        } else {
+            let inFinder = NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.finder"
+            targetDir = inFinder ? currentFinderFolder() : desktopURL
+        }
 
         let menu = NSMenu()
+        if let u = update {
+            let up = NSMenuItem(title: String(format: L("updateAvail"), u.version), action: #selector(openUpdate), keyEquivalent: "")
+            up.target = self
+            up.image = NSImage(systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: nil)
+            menu.addItem(up)
+            menu.addItem(.separator())
+        }
         let header = NSMenuItem(title: String(format: L("createIn"), name(of: targetDir)), action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
@@ -274,7 +364,8 @@ final class App: NSObject, NSApplicationDelegate {
 
         NSApp.activate(ignoringOtherApps: true)
         // Меню целиком на экране: у нижнего/правого края сдвигаем вверх/влево.
-        var at = NSEvent.mouseLocation
+        clickPoint = NSEvent.mouseLocation
+        var at = clickPoint
         if let screen = NSScreen.screens.first(where: { NSMouseInRect(at, $0.frame, false) }) ?? NSScreen.main {
             let vis = screen.visibleFrame
             at.y = min(max(at.y, vis.minY + menu.size.height), vis.maxY)
@@ -333,8 +424,28 @@ final class App: NSObject, NSApplicationDelegate {
 
     // Выделить созданное в уже открытом окне Finder. На рабочем столе не трогаем:
     // Finder на «select» открыл бы окно стола.
+    // Новый файл на рабочем столе — под курсор, а не в первое свободное место у правого края.
+    // Если значки на столе упорядочены автоматически, Finder сам решит, куда ставить.
+    func placeOnDesktop(_ url: URL) {
+        guard let main = NSScreen.screens.first else { return }
+        let x = Int(clickPoint.x), y = Int(main.frame.maxY - clickPoint.y) // у Finder отсчёт от верхнего края
+        let name = url.lastPathComponent.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+        let src = """
+        tell application "Finder"
+            repeat 10 times
+                if exists item "\(name)" of desktop then exit repeat
+                delay 0.1
+            end repeat
+            set desktop position of item "\(name)" of desktop to {\(x), \(y)}
+        end tell
+        """
+        var err: NSDictionary?
+        NSAppleScript(source: src)?.executeAndReturnError(&err)
+        if let err { NSLog("Blankly: place failed: %@", err) }
+    }
+
     func select(_ url: URL) {
-        if isDesktop(url.deletingLastPathComponent()) { return }
+        if isDesktop(url.deletingLastPathComponent()) { placeOnDesktop(url); return }
         let p = url.path.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
         let src = """
         set f to (POSIX file "\(p)") as alias
@@ -381,6 +492,9 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
     let note = NSTextField(labelWithString: "")
     let langPopup = NSPopUpButton()
     let loginBox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    let updatesBox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    let finderLabel = NSTextField(labelWithString: "")
+    let finderButton = NSButton()
     let version = NSTextField(labelWithString: "")
     let templatesButton = NSButton()
     let templatesHint = NSTextField(labelWithString: "")
@@ -388,27 +502,33 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
 
     init(app: App) {
         self.app = app
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 380, height: 280),
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 380, height: 350),
                           styleMask: [.titled, .closable], backing: .buffered, defer: false)
         super.init()
         window.isReleasedWhenClosed = false
         window.delegate = self
         let v = window.contentView!
 
-        hotLabel.frame = NSRect(x: 20, y: 232, width: 150, height: 20)
-        hotButton.frame = NSRect(x: 175, y: 225, width: 185, height: 32)
+        hotLabel.frame = NSRect(x: 20, y: 302, width: 150, height: 20)
+        hotButton.frame = NSRect(x: 175, y: 295, width: 185, height: 32)
         hotButton.bezelStyle = .rounded
         hotButton.target = self; hotButton.action = #selector(record)
-        note.frame = NSRect(x: 175, y: 208, width: 200, height: 16)
+        note.frame = NSRect(x: 175, y: 278, width: 200, height: 16)
         note.font = .systemFont(ofSize: 11); note.textColor = .systemRed
 
-        langLabel.frame = NSRect(x: 20, y: 176, width: 150, height: 20)
-        langPopup.frame = NSRect(x: 175, y: 170, width: 185, height: 30)
+        langLabel.frame = NSRect(x: 20, y: 246, width: 150, height: 20)
+        langPopup.frame = NSRect(x: 175, y: 240, width: 185, height: 30)
         langPopup.addItems(withTitles: ["Русский", "English"])
         langPopup.target = self; langPopup.action = #selector(changeLang)
 
-        loginBox.frame = NSRect(x: 20, y: 132, width: 340, height: 20)
+        loginBox.frame = NSRect(x: 20, y: 202, width: 340, height: 20)
         loginBox.target = self; loginBox.action = #selector(toggleLogin)
+        updatesBox.frame = NSRect(x: 20, y: 172, width: 340, height: 20)
+        updatesBox.target = self; updatesBox.action = #selector(toggleUpdates)
+        finderLabel.frame = NSRect(x: 20, y: 134, width: 230, height: 20)
+        finderButton.frame = NSRect(x: 245, y: 127, width: 120, height: 32)
+        finderButton.bezelStyle = .rounded
+        finderButton.target = self; finderButton.action = #selector(openFinderExtensions)
 
         let ver = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
         version.stringValue = "Blankly \(ver)"
@@ -421,7 +541,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         templatesHint.frame = NSRect(x: 20, y: 46, width: 340, height: 34)
         templatesHint.font = .systemFont(ofSize: 11); templatesHint.textColor = .secondaryLabelColor
 
-        [hotLabel, hotButton, note, langLabel, langPopup, loginBox, templatesButton, templatesHint, version]
+        [hotLabel, hotButton, note, langLabel, langPopup, loginBox, updatesBox, finderLabel, finderButton, templatesButton, templatesHint, version]
             .forEach { v.addSubview($0) }
     }
 
@@ -430,6 +550,12 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         hotLabel.stringValue = L("hotkey")
         langLabel.stringValue = L("language")
         loginBox.title = L("login")
+        updatesBox.title = L("checkUpdates")
+        let finderOn = FIFinderSyncController.isExtensionEnabled
+        finderLabel.stringValue = String(format: L("finderRow"), finderOn ? L("on") : L("off"))
+        finderButton.title = L("finderBtn")
+        finderButton.isHidden = finderOn
+        updatesBox.state = checkUpdates ? .on : .off
         templatesButton.title = L("templatesBtn")
         templatesHint.stringValue = L("templatesHint")
         hotButton.title = shortcutText(code: hotKeyCode, mods: hotKeyMods)
@@ -489,6 +615,15 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         refresh()
     }
 
+    @objc func openFinderExtensions() {
+        FIFinderSyncController.showExtensionManagementInterface()
+    }
+
+    @objc func toggleUpdates() {
+        checkUpdates = updatesBox.state == .on
+        app.startUpdateChecks()
+    }
+
     @objc func toggleLogin() {
         do {
             if loginBox.state == .on { try SMAppService.mainApp.register() }
@@ -498,6 +633,8 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         }
         refresh()
     }
+
+    func windowDidBecomeKey(_ n: Notification) { refresh() }
 
     func windowWillClose(_ n: Notification) {
         if monitor != nil { finish(nil) }
