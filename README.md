@@ -78,8 +78,16 @@ brew install --cask guf-hub/tap/blankly
 
 **First launch** (both ways):
 
-1. Open Blankly. The app is not notarized by Apple, so macOS blocks the first launch:
-   **System Settings → Privacy & Security → "Blankly was blocked" → Open Anyway**.
+1. Open Blankly from Applications. Blankly is not notarized by Apple (that needs a paid developer account), so the first time macOS shows *"Blankly.app" Not Opened — Apple could not verify…*. This is expected. To get past it once:
+   1. Click **Done**. Do **not** click *Move to Trash*.
+   2. Open  → **System Settings** → **Privacy & Security**.
+   3. Scroll down to *Security*. Next to *"Blankly.app" was blocked…* click **Open Anyway** and confirm with your password or Touch ID.
+   4. In the dialog that appears, click **Open Anyway** again.
+
+   After that Blankly opens normally. Prefer the Terminal? This does the same:
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Blankly.app
+   ```
 2. When asked whether Blankly may control Finder, click **Allow**. It needs this to know which folder is open.
 3. Open **Settings…** and turn on **Open at login**.
 4. Optional: turn on the Finder extension — see [Finder](#finder).
