@@ -17,23 +17,52 @@ macOS has no "New → Text Document" like Windows does. Blankly adds it as a sma
 
 ## How it works
 
-- Press **Control + Option + N**. A menu opens next to the cursor.
-- Or right-click an empty spot in a Finder window → **New File** → pick a format (turn it on once in Settings).
-- Or add the Blankly button to the Finder toolbar: right-click the toolbar → **Customize Toolbar…** → drag Blankly onto it.
-- Choose **New Folder** or a file format, type a name, press Enter.
-- The file is created in the folder open in Finder. If you are in another app, it goes to the Desktop.
+There are three ways to open Blankly:
+
+- Press **Control + Option + N** anywhere. A menu opens next to the cursor.
+- Right-click an empty spot in a Finder window or on the Desktop → **New File** → pick a format.
+- Click the Blankly button in the Finder toolbar (see [Finder](#finder) below).
+
+Then choose **New Folder** or a file format, type a name and press Enter. The name is pre-filled and selected, so you can just start typing.
+
+**Where the file goes**
+
+- In Finder — into the folder open in the front window. The new file is selected.
+- In any other app — onto the Desktop, right where the cursor was.
+- If the name is taken, Blankly adds a number: `Notes 1.txt`.
+
+**Formats:** `txt`, `md`, `json`, `csv`, `html`, `py`, `docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`.
+
 - Only formats your Mac can open are shown. No Word or Pages — no `.docx` in the menu.
+- Files are empty, except `html` (an HTML5 starter page) and Office documents.
+- Office files are real empty documents, not zero-byte files, so Word, Excel and LibreOffice open them without complaints.
 
-Formats: `txt`, `md`, `json`, `csv`, `html`, `py`, `docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`.
-Office files are real empty documents, not zero-byte files, so Word, Excel and LibreOffice open them without complaints.
+**Your own templates.** Settings → **Templates Folder…** opens a folder. Any file you put there shows up in the menu under *My Templates*, and new files are copies of it — a `.py` with your boilerplate, a `.yaml` config, anything. In the Finder menu they are under **More…**.
 
-Files are empty, except `html` (an HTML5 starter page) and Office documents.
+## Settings
 
-**Your own templates.** Settings → **Templates Folder…** opens a folder. Any file you put there shows up in the menu under *My Templates*, and new files are copies of it — a `.py` with your boilerplate, a `.yaml` config, anything.
+Open the menu (Control + Option + N) → **Settings…** at the bottom.
 
-Settings (bottom of the menu): shortcut, language (English / Русский), open at login, Finder right-click, update check, templates folder.
+| Setting | What it does |
+|---|---|
+| Shortcut | Click the field and press a new combination. It must include ⌘, ⌃ or ⌥. Esc cancels. If another app already uses it, Blankly says so. |
+| Language | English or Русский. By default Blankly follows the system: Russian on a Russian Mac, English otherwise. |
+| Open at login | Starts Blankly in the background when you log in, so the shortcut always works. |
+| Finder right-click | **Turn On…** opens the macOS list of Finder extensions; enable Blankly there. |
+| Check for updates daily | See [Updates](#updates). |
+| Templates Folder… | Opens the folder with your own templates. |
 
-**Updates.** Once a day Blankly asks GitHub whether a newer release exists and shows *Version X is available* at the top of the menu. Nothing else is sent. You can turn it off in Settings.
+## Finder
+
+Right-click and the toolbar button come from a Finder extension inside Blankly. Turn it on once: Settings → **Turn On…** next to *Finder right-click* → enable Blankly in the list.
+
+The toolbar button is optional. Right-click the Finder toolbar → **Customize Toolbar…** → drag Blankly onto it. Click it to get the same list of formats.
+
+macOS always puts items from apps at the bottom of the right-click menu — Blankly can't move its item higher.
+
+## Updates
+
+Once a day Blankly asks GitHub whether a newer release exists and shows *Version X is available* at the top of the menu. Nothing else is sent. You can turn it off in Settings.
 
 ## Install
 
@@ -45,16 +74,25 @@ brew trust --cask guf-hub/tap/blankly
 brew install --cask guf-hub/tap/blankly
 ```
 
-**Or manually:**
+**Or manually:** download `Blankly-x.y.dmg` from [Releases](../../releases), open it and drag Blankly to Applications.
 
-1. Download `Blankly-x.y.dmg` from [Releases](../../releases), open it and drag Blankly to Applications.
-2. Open Blankly. The app is not notarized by Apple, so macOS blocks the first launch:
+**First launch** (both ways):
+
+1. Open Blankly. The app is not notarized by Apple, so macOS blocks the first launch:
    **System Settings → Privacy & Security → "Blankly was blocked" → Open Anyway**.
-3. When asked whether Blankly may control Finder, click **Allow**. It needs this to know which folder is open.
-4. Open **Settings…** from the menu and turn on **Open at login**.
-5. For the right-click item: Settings → **Turn On…** next to *Finder right-click* → enable Blankly in the list. The toolbar button is optional: right-click the Finder toolbar → **Customize Toolbar…** → drag Blankly onto it.
+2. When asked whether Blankly may control Finder, click **Allow**. It needs this to know which folder is open.
+3. Open **Settings…** and turn on **Open at login**.
+4. Optional: turn on the Finder extension — see [Finder](#finder).
 
 Requires macOS 13 or later. Apple Silicon and Intel.
+
+## Uninstall
+
+```bash
+brew uninstall --zap --cask blankly
+```
+
+Without Homebrew: quit Blankly (menu → **Quit Blankly**), move it from Applications to the Trash, and delete `~/Library/Application Support/Blankly` (your templates) if you don't need it.
 
 ## Build from source
 
@@ -65,7 +103,7 @@ zsh build.sh              # build and install to /Applications
 zsh build.sh --no-install # build only: build/Blankly.app, .zip and .dmg
 ```
 
-`main.swift` is the whole app, `icon.swift` draws the icon, `Resources/templates` holds the empty Office documents.
+`main.swift` is the whole app, `FinderExtension.swift` is the Finder extension, `icon.swift` draws the icon, `Resources/templates` holds the empty Office documents.
 
 ## Author
 
