@@ -33,6 +33,18 @@ var formatKeys: [String: [Int]] {
     get { defaults.dictionary(forKey: "formatKeys") as? [String: [Int]] ?? [:] }
     set { defaults.set(newValue, forKey: "formatKeys") }
 }
+// Порядок и скрытые форматы ("" — папка); нет ключей — как раньше (см. FormatPrefs)
+var formatOrder: [String] {
+    get { defaults.stringArray(forKey: FormatPrefs.orderKey) ?? [] }
+    set { defaults.set(newValue, forKey: FormatPrefs.orderKey) }
+}
+var hiddenFormats: [String] {
+    get { defaults.stringArray(forKey: FormatPrefs.hiddenKey) ?? [] }
+    set { defaults.set(newValue, forKey: FormatPrefs.hiddenKey) }
+}
+func menuFormats() -> (all: [(format: Format, group: Int)], shown: [(format: Format, group: Int)]) {
+    menuFormats(lang: lang, order: formatOrder, hidden: hiddenFormats, available: { $0.isEmpty || appFor($0) != nil })
+}
 
 // Окна Sparkle (и другие системные) — на языке Blankly: выбран в настройках — он, не выбран — как в системе.
 // Действует со следующего запуска окна Sparkle; поэтому вызываем и при старте, и при смене языка.
@@ -270,15 +282,13 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
         header.isEnabled = false
         menu.addItem(header)
         menu.addItem(.separator())
-        menu.addItem(item(L("folder"), ext: "", icon: NSWorkspace.shared.icon(for: .folder)))
-        for group in formatGroups() {
-            let shown = group.filter { appFor($0.ext) != nil }
-            if shown.isEmpty { continue }
-            menu.addItem(.separator())
-            for f in shown {
-                let icon = UTType(filenameExtension: f.ext).map { NSWorkspace.shared.icon(for: $0) }
-                menu.addItem(item(f.title, ext: f.ext, icon: icon))
-            }
+        var lastGroup: Int?
+        for (f, group) in menuFormats().shown {
+            if let g = lastGroup, g != group { menu.addItem(.separator()) }
+            lastGroup = group
+            let icon = f.ext.isEmpty ? NSWorkspace.shared.icon(for: .folder)
+                : UTType(filenameExtension: f.ext).map { NSWorkspace.shared.icon(for: $0) }
+            menu.addItem(item(f.title, ext: f.ext, icon: icon))
         }
         let mine = userTemplates().filter { appFor($0.pathExtension) != nil }
         if !mine.isEmpty {
@@ -452,7 +462,7 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
 
 // MARK: - Окно настроек
 
-final class SettingsWindow: NSObject, NSWindowDelegate {
+final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate {
     let app: App
     let window: NSWindow
     let hotLabel = NSTextField(labelWithString: "")
@@ -471,11 +481,14 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
     let fmtButton = NSButton()
     var monitor: Any?
     var recording: (owner: String, button: NSButton, note: NSTextField)?
-    // окно «Клавиши форматов»
+    // окно «Форматы»
     var fmtWindow: NSWindow?
     let fmtNote = NSTextField(labelWithString: "")
     let fmtHint = NSTextField(labelWithString: "")
     var fmtButtons: [String: NSButton] = [:]
+    var fmtTable: NSTableView?
+    var fmtRows: [(format: Format, group: Int)] = []
+    let fmtDragType = NSPasteboard.PasteboardType("app.blankly.format")
 
     init(app: App) {
         self.app = app
@@ -610,50 +623,192 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         if let m = monitor { NSEvent.removeMonitor(m); monitor = nil }
     }
 
-    // MARK: окно «Клавиши форматов»: папка и форматы, которые есть чем открыть
+    // MARK: окно «Форматы»: папка и форматы, которые есть чем открыть — показ, порядок, клавиша, программа
 
     @objc func showFormatKeys() {
         if fmtWindow == nil { buildFormatWindow() }
         fmtWindow?.title = L("fmtTitle")
         fmtHint.stringValue = L("fmtHint")
         fmtNote.stringValue = ""
-        refreshFormatKeys()
+        fmtRows = menuFormats().all
+        fmtTable?.reloadData()
         fmtWindow?.center()
         fmtWindow?.makeKeyAndOrderFront(nil)
     }
 
     func buildFormatWindow() {
-        let rows = [("", L("folder"))] + formatGroups().joined().filter { appFor($0.ext) != nil }.map { ($0.ext, $0.title) }
-        let h = CGFloat(rows.count * 32 + 96)
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: h), styleMask: [.titled, .closable],
+        fmtRows = menuFormats().all
+        let h = CGFloat(min(fmtRows.count, 14) * 30 + 28 + 100)
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 660, height: h), styleMask: [.titled, .closable],
                          backing: .buffered, defer: false)
         w.isReleasedWhenClosed = false
         w.delegate = self
         let v = w.contentView!
-        fmtHint.frame = NSRect(x: 20, y: h - 50, width: 360, height: 34)
+        fmtHint.frame = NSRect(x: 20, y: h - 50, width: 620, height: 34)
         fmtHint.font = .systemFont(ofSize: 11); fmtHint.textColor = .secondaryLabelColor
         v.addSubview(fmtHint)
-        for (i, (ext, title)) in rows.enumerated() {
-            let y = h - 92 - CGFloat(i * 32)
-            let label = NSTextField(labelWithString: title)
-            label.frame = NSRect(x: 20, y: y + 6, width: 200, height: 20)
-            let b = NSButton(frame: NSRect(x: 220, y: y, width: 130, height: 32))
+
+        let table = NSTableView()
+        for (id, title, width) in [("show", L("colShow"), 80), ("name", L("base"), 180), ("key", L("colKey"), 160), ("open", L("colOpen"), 180)] {
+            let c = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(id))
+            c.title = title; c.width = CGFloat(width); c.resizingMask = []
+            table.addTableColumn(c)
+        }
+        table.rowHeight = 30
+        table.allowsColumnReordering = false
+        table.allowsColumnResizing = false
+        table.allowsMultipleSelection = false
+        table.usesAlternatingRowBackgroundColors = true
+        table.dataSource = self; table.delegate = self
+        table.registerForDraggedTypes([fmtDragType])
+        table.setDraggingSourceOperationMask(.move, forLocal: true)
+        table.draggingDestinationFeedbackStyle = .gap
+        let scroll = NSScrollView(frame: NSRect(x: 20, y: 44, width: 620, height: h - 100))
+        scroll.documentView = table
+        scroll.hasVerticalScroller = true
+        scroll.borderType = .bezelBorder
+        v.addSubview(scroll)
+
+        fmtNote.frame = NSRect(x: 20, y: 16, width: 620, height: 16)
+        fmtNote.font = .systemFont(ofSize: 11); fmtNote.textColor = .systemRed
+        v.addSubview(fmtNote)
+        fmtTable = table
+        fmtWindow = w
+    }
+
+    func numberOfRows(in tableView: NSTableView) -> Int { fmtRows.count }
+
+    func tableView(_ tableView: NSTableView, viewFor column: NSTableColumn?, row: Int) -> NSView? {
+        guard row < fmtRows.count else { return nil }
+        let f = fmtRows[row].format
+        let id = NSUserInterfaceItemIdentifier(f.ext)
+        switch column?.identifier.rawValue {
+        case "show":
+            let b = NSButton(checkboxWithTitle: "", target: self, action: #selector(toggleShown(_:)))
+            b.identifier = id
+            b.state = hiddenFormats.contains(f.ext) ? .off : .on
+            b.setAccessibilityLabel(f.title)
+            let cell = NSView()
+            b.frame = NSRect(x: 30, y: 5, width: 20, height: 20)
+            cell.addSubview(b)
+            return cell
+        case "name":
+            return NSTextField(labelWithString: f.title)
+        case "key":
+            let cell = NSView()
+            let b = NSButton(frame: NSRect(x: 0, y: 1, width: 124, height: 28))
             b.bezelStyle = .rounded
-            b.identifier = NSUserInterfaceItemIdentifier(ext)
+            b.identifier = id
             b.target = self; b.action = #selector(record(_:))
-            let x = NSButton(frame: NSRect(x: 350, y: y + 4, width: 30, height: 24))
+            b.setAccessibilityLabel("\(f.title): \(L("colKey"))")
+            let x = NSButton(frame: NSRect(x: 126, y: 3, width: 26, height: 24))
             x.bezelStyle = .inline; x.isBordered = false
             x.image = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: L("fmtClear"))
             x.toolTip = L("fmtClear")
-            x.identifier = NSUserInterfaceItemIdentifier(ext)
+            x.identifier = id
             x.target = self; x.action = #selector(clearFormatKey(_:))
-            [label, b, x].forEach { v.addSubview($0) }
-            fmtButtons[ext] = b
+            cell.addSubview(b); cell.addSubview(x)
+            fmtButtons[f.ext] = b
+            refreshFormatKeys()
+            return cell
+        case "open":
+            return f.ext.isEmpty ? NSView() : openPopup(for: f)
+        default:
+            return nil
         }
-        fmtNote.frame = NSRect(x: 20, y: 16, width: 360, height: 16)
-        fmtNote.font = .systemFont(ofSize: 11); fmtNote.textColor = .systemRed
-        v.addSubview(fmtNote)
-        fmtWindow = w
+    }
+
+    // «Открывать в…»: программы, которые умеют открывать тип; выбрана текущая по умолчанию
+    func openPopup(for f: Format) -> NSView {
+        let cell = NSView()
+        let p = NSPopUpButton(frame: NSRect(x: 0, y: 2, width: 172, height: 26), pullsDown: false)
+        p.identifier = NSUserInterfaceItemIdentifier(f.ext)
+        p.setAccessibilityLabel("\(f.title): \(L("colOpen"))")
+        p.target = self; p.action = #selector(openChanged(_:))
+        fillApps(p, ext: f.ext)
+        cell.addSubview(p)
+        return cell
+    }
+
+    func fillApps(_ p: NSPopUpButton, ext: String) {
+        p.removeAllItems()
+        guard let type = UTType(filenameExtension: ext) else { return }
+        var apps = NSWorkspace.shared.urlsForApplications(toOpen: type)
+        let cur = NSWorkspace.shared.urlForApplication(toOpen: type)
+        if let cur, !apps.contains(cur) { apps.insert(cur, at: 0) }
+        for u in apps {
+            var name = FileManager.default.displayName(atPath: u.path)
+            if name.hasSuffix(".app") { name = String(name.dropLast(4)) }
+            p.addItem(withTitle: name)
+            p.lastItem?.representedObject = u
+            p.lastItem?.toolTip = u.path
+            let icon = NSWorkspace.shared.icon(forFile: u.path)
+            icon.size = NSSize(width: 16, height: 16)
+            p.lastItem?.image = icon
+        }
+        if let cur, let i = apps.firstIndex(of: cur) { p.selectItem(at: i) }
+    }
+
+    // macOS сама спрашивает подтверждение («Использовать …» / «Не изменять») и до ответа не вызывает completionHandler;
+    // отказ приходит как ошибка — тогда возвращаем в списке прежнюю программу и говорим об этом.
+    @objc func openChanged(_ p: NSPopUpButton) {
+        if recording != nil { finish(nil) }
+        let ext = p.identifier?.rawValue ?? ""
+        guard let app = p.selectedItem?.representedObject as? URL, let type = UTType(filenameExtension: ext) else { return }
+        fmtNote.stringValue = ""
+        NSWorkspace.shared.setDefaultApplication(at: app, toOpen: type) { [weak self, weak p] err in
+            DispatchQueue.main.async {
+                guard let err, let self else { return }
+                NSLog("Blankly: setDefaultApplication(.%@) failed: %@", ext, err.localizedDescription)
+                self.fmtNote.stringValue = L("openFail")
+                if let p { self.fillApps(p, ext: ext) }
+            }
+        }
+    }
+
+    @objc func toggleShown(_ b: NSButton) {
+        let ext = b.identifier?.rawValue ?? ""
+        var hidden = hiddenFormats
+        if b.state == .on {
+            hidden.removeAll { $0 == ext }
+        } else {
+            // скрыть всё нельзя
+            if !fmtRows.contains(where: { $0.format.ext != ext && !hidden.contains($0.format.ext) }) {
+                b.state = .on
+                NSSound.beep()
+                fmtNote.stringValue = L("fmtLast")
+                return
+            }
+            if !hidden.contains(ext) { hidden.append(ext) }
+        }
+        fmtNote.stringValue = ""
+        hiddenFormats = hidden
+    }
+
+    // Перетаскивание строк: порядок сразу пишется в defaults
+    func tableView(_ tableView: NSTableView, pasteboardWriterForRow row: Int) -> NSPasteboardWriting? {
+        let item = NSPasteboardItem()
+        item.setString(String(row), forType: fmtDragType)
+        return item
+    }
+
+    func tableView(_ tableView: NSTableView, validateDrop info: NSDraggingInfo, proposedRow row: Int,
+                   proposedDropOperation op: NSTableView.DropOperation) -> NSDragOperation {
+        if op == .on { tableView.setDropRow(row, dropOperation: .above) }
+        return .move
+    }
+
+    func tableView(_ tableView: NSTableView, acceptDrop info: NSDraggingInfo, row: Int,
+                   dropOperation: NSTableView.DropOperation) -> Bool {
+        guard let s = info.draggingPasteboard.string(forType: fmtDragType), let from = Int(s), from < fmtRows.count else { return false }
+        if recording != nil { finish(nil) }
+        var rows = fmtRows
+        let moved = rows.remove(at: from)
+        rows.insert(moved, at: row > from ? row - 1 : row)
+        fmtRows = rows
+        formatOrder = rows.map { $0.format.ext }
+        tableView.reloadData()
+        return true
     }
 
     func refreshFormatKeys() {
@@ -679,7 +834,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
     @objc func changeLang() {
         lang = langPopup.indexOfSelectedItem == 1 ? "en" : "ru"
         applyLanguage()
-        fmtWindow?.close(); fmtWindow = nil; fmtButtons = [:] // пересоберётся на новом языке
+        fmtWindow?.close(); fmtWindow = nil; fmtTable = nil; fmtButtons = [:] // пересоберётся на новом языке
         refresh()
     }
 

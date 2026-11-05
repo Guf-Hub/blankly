@@ -4,5 +4,5 @@
 set -e
 cd "${0:A:h}"
 mkdir -p build/test
-swiftc -o build/test/blankly-tests Core.swift Tests/*.swift
+swiftc -o build/test/blankly-tests Core.swift FormatOrder.swift Tests/*.swift
 build/test/blankly-tests Resources/templates

@@ -54,16 +54,24 @@ final class FinderSync: FIFinderSync {
         }
     }
 
+    // Папка и форматы в порядке из настроек Blankly (formatOrder / hiddenFormats), скрытые и без программы — убраны.
+    // Группы дают разделители, как в главном меню.
     func formatsMenu() -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(entry(Self.ru ? "Новая папка" : "New Folder", tag: 0, symbol: "folder"))
-        for group in Self.formats {
-            let shown = group.filter { canOpen($0.0) }
-            if shown.isEmpty { continue }
-            menu.addItem(.separator())
-            for (ext, title) in shown {
-                menu.addItem(entry(title, tag: (Self.allExts.firstIndex(of: ext) ?? 0) + 1, symbol: nil))
-            }
+        let suite = UserDefaults(suiteName: "app.blankly")
+        var items: [(ext: String, title: String, group: Int)] = [("", Self.ru ? "Новая папка" : "New Folder", 0)]
+        for (i, g) in Self.formats.enumerated() { items += g.map { ($0.0, $0.1, i + 1) } }
+        items = items.filter { $0.ext.isEmpty || canOpen($0.ext) }
+        let r = FormatPrefs.apply(items.map { $0.ext },
+                                  order: suite?.stringArray(forKey: FormatPrefs.orderKey) ?? [],
+                                  hidden: suite?.stringArray(forKey: FormatPrefs.hiddenKey) ?? [])
+        var last: Int?
+        for ext in r.shown {
+            guard let it = items.first(where: { $0.ext == ext }) else { continue }
+            if let g = last, g != it.group { menu.addItem(.separator()) }
+            last = it.group
+            menu.addItem(entry(it.title, tag: ext.isEmpty ? 0 : (Self.allExts.firstIndex(of: ext) ?? 0) + 1,
+                               symbol: ext.isEmpty ? "folder" : nil))
         }
         menu.addItem(.separator())
         menu.addItem(entry(Self.ru ? "Другое… (мои шаблоны)" : "More… (my templates)", tag: -1, symbol: nil))

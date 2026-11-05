@@ -28,11 +28,11 @@ let strings: [String: (ru: String, en: String)] = [
     "needMod": ("Нужна клавиша ⌘, ⌃ или ⌥", "Use ⌘, ⌃ or ⌥"),
     "busy": ("Сочетание занято другой программой", "Shortcut is used by another app"),
     "language": ("Язык:", "Language:"),
-    "fmtKeys": ("Клавиши форматов:", "Format shortcuts:"),
+    "fmtKeys": ("Форматы:", "Formats:"),
     "fmtSetup": ("Настроить…", "Set Up…"),
-    "fmtTitle": ("Blankly — клавиши форматов", "Blankly — Format Shortcuts"),
-    "fmtHint": ("Нажмите на поле и сочетание с ⌃⌥. Файл создаётся сразу,\nбез меню: остаётся только ввести имя.",
-                "Click a field and press a shortcut with ⌃⌥. The file is created\nright away, no menu: just type a name."),
+    "fmtTitle": ("Blankly — форматы", "Blankly — Formats"),
+    "fmtHint": ("Перетащите строки, чтобы задать порядок. Для клавиши нажмите на поле\nи сочетание с ⌃⌥: файл создастся сразу, останется ввести имя.",
+                "Drag rows to set the order. For a shortcut, click a field and press\na combination with ⌃⌥: the file is created right away, just type a name."),
     "fmtClear": ("Убрать сочетание", "Remove shortcut"),
     "needCtrlOpt": ("Нужны ⌃ и ⌥ вместе", "Use ⌃ and ⌥ together"),
     "usedMenu": ("Уже занято: меню Blankly", "Already used: Blankly menu"),
@@ -51,6 +51,13 @@ let strings: [String: (ru: String, en: String)] = [
     "templatesBtn": ("Папка шаблонов…", "Templates Folder…"),
     "templatesHint": ("Положите туда любой файл — он появится в меню,\nа новый файл будет его копией.",
                       "Put any file there — it shows up in the menu\nand new files are copies of it."),
+    // formats
+    "colShow": ("Показывать", "Show"),
+    "colKey": ("Клавиша", "Shortcut"),
+    "colOpen": ("Открывать в…", "Open in…"),
+    "fmtLast": ("Хотя бы один пункт должен остаться", "At least one item must stay visible"),
+    "openFail": ("Программа не изменена: вы отказались в окне macOS или она не разрешила.",
+                 "App not changed: you declined in the macOS prompt or it was refused."),
 ]
 
 func L(_ k: String, _ lang: String) -> String { let s = strings[k]!; return lang == "en" ? s.en : s.ru }
@@ -71,6 +78,18 @@ func formatGroups(lang: String) -> [[Format]] {
      [Format(ext: "odt", title: "\(L("lo_text", lang)) (.odt)"),
       Format(ext: "ods", title: "\(L("lo_calc", lang)) (.ods)"),
       Format(ext: "odp", title: "\(L("lo_impress", lang)) (.odp)")]]
+}
+
+// Пункты меню в нужном порядке: папка ("") и форматы с номером группы (для разделителей).
+// available — есть ли чем открыть; hidden/order — из настроек (FormatPrefs).
+func menuFormats(lang: String, order: [String], hidden: [String], available: (String) -> Bool)
+    -> (all: [(format: Format, group: Int)], shown: [(format: Format, group: Int)]) {
+    var items: [(format: Format, group: Int)] = [(Format(ext: "", title: L("folder", lang)), 0)]
+    for (i, g) in formatGroups(lang: lang).enumerated() { items += g.map { ($0, i + 1) } }
+    items = items.filter { available($0.format.ext) }
+    let r = FormatPrefs.apply(items.map { $0.format.ext }, order: order, hidden: hidden)
+    func pick(_ exts: [String]) -> [(format: Format, group: Int)] { exts.compactMap { e in items.first { $0.format.ext == e } } }
+    return (pick(r.ordered), pick(r.shown))
 }
 
 // Название формата для подсказок: "" — папка
