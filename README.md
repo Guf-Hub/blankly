@@ -82,6 +82,8 @@ The toolbar button is optional. Right-click the Finder toolbar → **Customize T
 
 macOS always puts items from apps at the bottom of the right-click menu — Blankly can't move its item higher.
 
+In iCloud Drive macOS doesn't show app items in the right-click menu at all. There, use the toolbar button or Control + Option + N — both work.
+
 ## Updates
 
 Blankly updates itself with [Sparkle](https://sparkle-project.org), the standard updater for Mac apps.
