@@ -24,7 +24,7 @@ CI runs both (`test` and `build`) on every PR; `main` only accepts PRs with both
 
 - **Strings:** every UI string lives in `translations` in `Core.swift` (app) or `FinderSync.strings` in `FinderExtension.swift` (extension) and must exist in all 7 languages: en, ru, de, fr, es, zh-Hans, ja. `Tests/StringsTests.swift` fails otherwise.
 - Product names are not translated: Word, Excel, PowerPoint, LibreOffice Writer/Calc/Impress, Markdown, JSON, etc.
-- **Formats:** the built-in list is `FormatList.groups` in `Formats.swift`. A new format also needs a starter file (`Resources/templates/empty.<ext>`) described in `Tests/TemplatesTests.swift`) or an entry in `starterText` in `main.swift` if an empty file is not a valid document.
+- **Formats:** the built-in list is `FormatList.groups` in `Formats.swift`. A new format also needs a starter file (`Resources/templates/empty.<ext>`, described in `Tests/TemplatesTests.swift`) or an entry in `starterText` in `main.swift` if an empty file is not a valid document.
 - Settings live in `UserDefaults` domain `app.blankly`; the Finder extension reads them read-only. Don't rename existing keys: installed users would lose their settings.
 - Keep the menu short. Ask before adding new menu items or settings.
 - **Don't** change `VERSION` in `build.sh`, `release.sh`, `sign.sh` or `.github/workflows/release-build.yml` unless the task is about them; releases are made by the maintainer.
