@@ -393,6 +393,7 @@ let fmtOpenColumnWidth: CGFloat = 230
 struct Format { let ext: String; let title: String }
 func formatGroups(lang: String) -> [[Format]] {
     [[Format(ext: "txt", title: "\(L("text", lang)) (.txt)"),
+      Format(ext: "rtf", title: "RTF (.rtf)"),
       Format(ext: "md", title: "Markdown (.md)"),
       Format(ext: "json", title: "JSON (.json)"),
       Format(ext: "csv", title: "CSV (.csv)"),

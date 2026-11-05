@@ -40,7 +40,7 @@ final class FinderSync: FIFinderSync {
 
     // (расширение, название); "folder" — новая папка. Тот же список, что в главном меню Blankly.
     static var formats: [[(String, String)]] { [
-        [("txt", "\(t("text")) (.txt)"), ("md", "Markdown (.md)"), ("json", "JSON (.json)"),
+        [("txt", "\(t("text")) (.txt)"), ("rtf", "RTF (.rtf)"), ("md", "Markdown (.md)"), ("json", "JSON (.json)"),
          ("csv", "CSV (.csv)"), ("html", "HTML (.html)"), ("py", "Python (.py)")],
         [("docx", "Word (.docx)"), ("xlsx", "Excel (.xlsx)"), ("pptx", "PowerPoint (.pptx)")],
         [("odt", "LibreOffice Writer (.odt)"), ("ods", "LibreOffice Calc (.ods)"), ("odp", "LibreOffice Impress (.odp)")],
