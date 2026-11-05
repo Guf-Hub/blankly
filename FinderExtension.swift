@@ -7,17 +7,18 @@ import UniformTypeIdentifiers
 
 @objc(FinderSync)
 final class FinderSync: FIFinderSync {
-    static let ru = Locale.preferredLanguages.first?.hasPrefix("ru") == true
+    // Язык — из настроек Blankly (читать их разрешает entitlement в build.sh), иначе английский, как в приложении
+    static var ru: Bool { UserDefaults(suiteName: "app.blankly")?.string(forKey: "lang") == "ru" }
 
     // (расширение, название); "folder" — новая папка. Тот же список, что в главном меню Blankly.
-    static let formats: [[(String, String)]] = [
+    static var formats: [[(String, String)]] { [
         [("txt", ru ? "Текст (.txt)" : "Text (.txt)"), ("md", "Markdown (.md)"), ("json", "JSON (.json)"),
          ("csv", "CSV (.csv)"), ("html", "HTML (.html)"), ("py", "Python (.py)")],
         [("docx", "Word (.docx)"), ("xlsx", "Excel (.xlsx)"), ("pptx", "PowerPoint (.pptx)")],
         [("odt", ru ? "LibreOffice Текст (.odt)" : "LibreOffice Text (.odt)"),
          ("ods", ru ? "LibreOffice Таблица (.ods)" : "LibreOffice Spreadsheet (.ods)"),
          ("odp", ru ? "LibreOffice Презентация (.odp)" : "LibreOffice Presentation (.odp)")],
-    ]
+    ] }
     static let allExts = formats.flatMap { $0.map { $0.0 } }
 
     override init() {

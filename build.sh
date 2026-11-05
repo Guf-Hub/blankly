@@ -49,7 +49,7 @@ cat > "$EXT/Contents/Info.plist" <<EOF
 EOF
 printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
   '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
-  '<plist version="1.0"><dict><key>com.apple.security.app-sandbox</key><true/></dict></plist>' > build/obj/ext.entitlements
+  '<plist version="1.0"><dict><key>com.apple.security.app-sandbox</key><true/><key>com.apple.security.temporary-exception.shared-preference.read-only</key><array><string>app.blankly</string></array></dict></plist>' > build/obj/ext.entitlements
 
 # 2. Иконка: рисуем 1024 и режем на все размеры
 ICONSET=build/obj/AppIcon.iconset; mkdir -p "$ICONSET"
