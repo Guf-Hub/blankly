@@ -38,3 +38,20 @@ func testFormatOrder() {
     check(!m.shown.contains { $0.format.ext == "xlsx" }, "xlsx без программы")
     check(m.all.contains { $0.format.ext == "docx" }, "docx остаётся в настройках")
 }
+
+// Форматы для кода скрыты по умолчанию; включённые запоминаются, остальные настройки не трогаются
+func testDefaultHidden() {
+    let all = FormatList.groups(text: "Text").joined().map(\.ext)
+    for e in FormatList.hiddenByDefault { check(all.contains(e), "скрытый по умолчанию \(e) есть в списке форматов") }
+    eq(Set(FormatPrefs.hidden(stored: [], shown: [])), Set(FormatList.hiddenByDefault), "новый пользователь: скрыты только форматы кода")
+    eq(FormatPrefs.hidden(stored: ["docx"], shown: ["sh"]).contains("sh"), false, "включённый sh показан")
+    eq(FormatPrefs.hidden(stored: ["docx"], shown: ["sh"]).contains("docx"), true, "своё скрытое осталось")
+    eq(FormatPrefs.hidden(stored: ["sh"], shown: []).filter { $0 == "sh" }.count, 1, "без повторов")
+    let m = menuFormats(lang: "en", order: [], hidden: FormatPrefs.hidden(stored: [], shown: []), available: { _ in true })
+    check(!m.shown.contains { $0.format.ext == "php" }, "php не в меню по умолчанию")
+    check(m.all.contains { $0.format.ext == "php" }, "php есть в окне «Форматы»")
+    check(m.shown.contains { $0.format.ext == "py" }, "py в меню, как раньше")
+    // скрипты: строка #! и право на запуск; xml — с объявлением
+    for e in FormatList.executable { check(FormatList.starter(e)?.hasPrefix("#!") == true, "\(e) начинается с #!") }
+    check(FormatList.starter("xml")?.hasPrefix("<?xml") == true, "xml начинается с объявления")
+}

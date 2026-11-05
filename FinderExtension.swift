@@ -82,7 +82,8 @@ final class FinderSync: FIFinderSync {
         items = items.filter { $0.ext.isEmpty || canOpen($0.ext) }
         let r = FormatPrefs.apply(items.map { $0.ext },
                                   order: suite?.stringArray(forKey: FormatPrefs.orderKey) ?? [],
-                                  hidden: suite?.stringArray(forKey: FormatPrefs.hiddenKey) ?? [])
+                                  hidden: FormatPrefs.hidden(stored: suite?.stringArray(forKey: FormatPrefs.hiddenKey) ?? [],
+                                                             shown: suite?.stringArray(forKey: FormatPrefs.shownKey) ?? []))
         var last: Int?
         for ext in r.shown {
             guard let it = items.first(where: { $0.ext == ext }) else { continue }

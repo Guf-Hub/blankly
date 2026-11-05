@@ -60,6 +60,8 @@ let translations: [String: [String: String]] = [
         "openAfter": "Open file right after creating",
         "fromClip": "From Clipboard…",
         "clipName": "From Clipboard",
+        "renameFinder": "Don't ask for a name — rename in Finder",
+        "templatesChange": "Change…",
     ],
     "ru": [
         "base": "Новый файл",
@@ -113,6 +115,8 @@ let translations: [String: [String: String]] = [
         "openAfter": "Открывать файл сразу после создания",
         "fromClip": "Из буфера обмена…",
         "clipName": "Из буфера",
+        "renameFinder": "Не спрашивать имя — переименовать в Finder",
+        "templatesChange": "Изменить…",
     ],
     "de": [
         "base": "Neue Datei",
@@ -166,6 +170,8 @@ let translations: [String: [String: String]] = [
         "openAfter": "Datei nach dem Erstellen sofort öffnen",
         "fromClip": "Aus der Zwischenablage …",
         "clipName": "Aus Zwischenablage",
+        "renameFinder": "Nicht nach Namen fragen — im Finder umbenennen",
+        "templatesChange": "Ändern…",
     ],
     "fr": [
         "base": "Nouveau fichier",
@@ -219,6 +225,8 @@ let translations: [String: [String: String]] = [
         "openAfter": "Ouvrir le fichier juste après sa création",
         "fromClip": "Depuis le presse-papiers…",
         "clipName": "Depuis le presse-papiers",
+        "renameFinder": "Nommer directement dans le Finder",
+        "templatesChange": "Modifier…",
     ],
     "es": [
         "base": "Nuevo archivo",
@@ -272,6 +280,8 @@ let translations: [String: [String: String]] = [
         "openAfter": "Abrir el archivo justo después de crearlo",
         "fromClip": "Desde el portapapeles…",
         "clipName": "Desde el portapapeles",
+        "renameFinder": "No pedir nombre: renombrar en el Finder",
+        "templatesChange": "Cambiar…",
     ],
     "zh-Hans": [
         "base": "新建文件",
@@ -325,6 +335,8 @@ let translations: [String: [String: String]] = [
         "openAfter": "创建后立即打开文件",
         "fromClip": "来自剪贴板…",
         "clipName": "来自剪贴板",
+        "renameFinder": "不询问名称，直接在访达中重命名",
+        "templatesChange": "更改…",
     ],
     "ja": [
         "base": "新規ファイル",
@@ -378,6 +390,8 @@ let translations: [String: [String: String]] = [
         "openAfter": "作成後すぐにファイルを開く",
         "fromClip": "クリップボードから…",
         "clipName": "クリップボードから",
+        "renameFinder": "名前を尋ねずに Finder で名前を変更",
+        "templatesChange": "変更…",
     ],
 ]
 
@@ -387,7 +401,9 @@ func L(_ k: String, _ lang: String) -> String { translations[lang]?[k] ?? transl
 // MARK: - Форматы
 
 // Ширина столбцов окна «Форматы» (main.swift); Tests/LayoutTests.swift проверяет, что самые длинные названия на всех языках влезают.
+let fmtShowColumnWidth: CGFloat = 88
 let fmtNameColumnWidth: CGFloat = 220
+let fmtKeyColumnWidth: CGFloat = 154 // кнопка 124 + крестик 26
 let fmtOpenColumnWidth: CGFloat = 230
 
 struct Format { let ext: String; let title: String }
