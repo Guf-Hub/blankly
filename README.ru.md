@@ -123,7 +123,7 @@ brew install --cask guf-hub/tap/blankly
 brew uninstall --zap --cask blankly
 ```
 
-Без Homebrew: закройте Blankly (меню → **«Выйти из Blankly»**), перетащите его из «Программ» в Корзину и удалите `~/Library/Application Support/Blankly` (ваши шаблоны), если они не нужны.
+Без Homebrew: закройте Blankly (меню → **«Выйти»**), перетащите его из «Программ» в Корзину и удалите `~/Library/Application Support/Blankly` (ваши шаблоны), если они не нужны.
 
 ## Сборка из исходников
 
