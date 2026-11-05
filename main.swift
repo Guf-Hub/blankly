@@ -32,6 +32,11 @@ var openAfterCreate: Bool {
     get { defaults.object(forKey: "openAfterCreate") as? Bool ?? false }
     set { defaults.set(newValue, forKey: "openAfterCreate") }
 }
+// Без окна имени: файл создаётся с именем по умолчанию, и в Finder сразу включается переименование
+var renameInFinder: Bool {
+    get { defaults.object(forKey: "renameInFinder") as? Bool ?? false }
+    set { defaults.set(newValue, forKey: "renameInFinder") }
+}
 // Быстрые клавиши форматов: расширение ("" — папка) → [код клавиши, модификаторы]
 var formatKeys: [String: [Int]] {
     get { defaults.dictionary(forKey: "formatKeys") as? [String: [Int]] ?? [:] }
@@ -42,9 +47,14 @@ var formatOrder: [String] {
     get { defaults.stringArray(forKey: FormatPrefs.orderKey) ?? [] }
     set { defaults.set(newValue, forKey: FormatPrefs.orderKey) }
 }
+// Скрытые на деле (с учётом скрытых по умолчанию); запись помнит и включённые из скрытых по умолчанию
 var hiddenFormats: [String] {
-    get { defaults.stringArray(forKey: FormatPrefs.hiddenKey) ?? [] }
-    set { defaults.set(newValue, forKey: FormatPrefs.hiddenKey) }
+    get { FormatPrefs.hidden(stored: defaults.stringArray(forKey: FormatPrefs.hiddenKey) ?? [],
+                             shown: defaults.stringArray(forKey: FormatPrefs.shownKey) ?? []) }
+    set {
+        defaults.set(newValue, forKey: FormatPrefs.hiddenKey)
+        defaults.set(FormatList.hiddenByDefault.filter { !newValue.contains($0) }, forKey: FormatPrefs.shownKey)
+    }
 }
 func menuFormats() -> (all: [(format: Format, group: Int)], shown: [(format: Format, group: Int)]) {
     menuFormats(lang: lang, order: formatOrder, hidden: hiddenFormats, available: { $0.isEmpty || appFor($0) != nil })
@@ -64,11 +74,11 @@ func appFor(_ ext: String) -> URL? {
     UTType(filenameExtension: ext).flatMap { NSWorkspace.shared.urlForApplication(toOpen: $0) }
 }
 
-// Встроенные файлы пустые; у html — стандартная заготовка HTML5.
+// Встроенные файлы пустые; у html — заготовка HTML5, у rtf — заголовок, у скриптов и разметки — FormatList.starter.
 func starterText(_ ext: String) -> String {
     // пустой RTF без заголовка TextEdit не откроет как документ с оформлением
     if ext == "rtf" { return "{\\rtf1\\ansi\\ansicpg1252\\cocoartf2\n{\\fonttbl\\f0\\fswiss Helvetica;}\n\\f0\\fs24\n}\n" }
-    guard ext == "html" else { return "" }
+    guard ext == "html" else { return FormatList.starter(ext) ?? "" }
     return """
     <!DOCTYPE html>
     <html lang="\(lang)">
@@ -86,8 +96,16 @@ func starterText(_ ext: String) -> String {
 }
 
 // Свои шаблоны: любой файл или папка в этой папке появляется в меню, новый файл — его копия.
-let userTemplatesDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+let defaultTemplatesDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
     .appendingPathComponent("Blankly/Templates", isDirectory: true)
+// Папку можно перенести (например, в iCloud Drive — тогда шаблоны одни на всех маках); нет ключа — стандартная
+var userTemplatesDir: URL {
+    get { defaults.string(forKey: "templatesDir").map { URL(fileURLWithPath: $0, isDirectory: true) } ?? defaultTemplatesDir }
+    set {
+        if newValue.standardizedFileURL == defaultTemplatesDir.standardizedFileURL { defaults.removeObject(forKey: "templatesDir") }
+        else { defaults.set(newValue.path, forKey: "templatesDir") }
+    }
+}
 
 func isFolder(_ url: URL) -> Bool { (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
 
@@ -146,6 +164,7 @@ func create(ext: String, base: String, in dir: URL, template: URL? = nil) -> URL
             try fm.copyItem(at: tpl, to: url)
         } else {
             try Data(starterText(ext).utf8).write(to: url, options: .withoutOverwriting)
+            if FormatList.executable.contains(ext) { try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path) }
         }
     } catch {
         // не оставляем недоделанную копию шаблона (url был свободен — всё, что там есть, создали мы)
@@ -192,6 +211,17 @@ func shortcutConflict(code: UInt32, mods: UInt32, owner: String) -> String? {
 }
 
 // MARK: - Приложение
+
+// Поле имени: при фокусе выделяет только имя без расширения, как Finder.
+// Выделять в момент фокуса, а не через async: иначе, когда окно получает фокус позже, AppKit выделяет всё.
+final class NameField: NSTextField {
+    var nameLength = 0
+    override func becomeFirstResponder() -> Bool {
+        let ok = super.becomeFirstResponder()
+        if ok { currentEditor()?.selectedRange = NSRange(location: 0, length: nameLength) }
+        return ok
+    }
+}
 
 final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate {
     var targetDir = desktopURL
@@ -243,7 +273,13 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
     }
 
     func applicationShouldHandleReopen(_ s: NSApplication, hasVisibleWindows f: Bool) -> Bool {
-        showMenu()
+        // открыты настройки — щелчок по значку в Доке возвращает их, а не показывает меню
+        if let s = settings, s.hasOpenWindows {
+            NSApp.activate(ignoringOtherApps: true)
+            (s.fmtWindow?.isVisible == true ? s.fmtWindow : s.window)?.makeKeyAndOrderFront(nil)
+        } else {
+            showMenu()
+        }
         return false
     }
 
@@ -419,6 +455,8 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
     // (нечем открыть — просто остаётся выделенным; папка всегда только выделяется)
     func reveal(_ url: URL) {
         select(url)
+        // переименование важнее открытия: открытый файл увёл бы фокус из Finder
+        if renameInFinder { startRename(); return }
         if openAfterCreate, !isFolder(url), NSWorkspace.shared.urlForApplication(toOpen: url) != nil {
             NSWorkspace.shared.open(url)
         }
@@ -465,6 +503,7 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
 
     // Окно с именем: поле заполнено и выделено (без расширения), Enter — создать, Esc — отмена.
     func askName(ext: String, fallback: String) -> String? {
+        if renameInFinder { return fallback } // имя зададут в Finder (startRename)
         let a = NSAlert()
         a.messageText = ext.isEmpty ? L("askFolder") : L("askFile")
         // полный путь (~/…), а не только имя: папку могла прислать ссылка blankly://, и имя одно ничего не говорит
@@ -474,14 +513,12 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
             : UTType(filenameExtension: ext).map { NSWorkspace.shared.icon(for: $0) }
         a.addButton(withTitle: L("create"))
         a.addButton(withTitle: L("cancel"))
-        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+        let field = NameField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
         field.stringValue = ext.isEmpty ? fallback : "\(fallback).\(ext)"
+        field.nameLength = (fallback as NSString).length
         a.accessoryView = field
         a.window.initialFirstResponder = field
         NSApp.activate(ignoringOtherApps: true)
-        DispatchQueue.main.async {
-            field.currentEditor()?.selectedRange = NSRange(location: 0, length: (fallback as NSString).length)
-        }
         guard a.runModal() == .alertFirstButtonReturn else { return nil }
         return cleanBase(field.stringValue, ext: ext, fallback: fallback)
     }
@@ -490,6 +527,17 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
     // Finder на «select» открыл бы окно стола.
     // Новый файл на рабочем столе — под курсор, а не в первое свободное место у правого края.
     // Если значки на столе упорядочены автоматически, Finder сам решит, куда ставить.
+    // Включить переименование выделенного в Finder: нажать за пользователя Enter.
+    // Нужен «Универсальный доступ»; без него файл просто остаётся выделенным.
+    func startRename() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            guard AXIsProcessTrusted(), NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.finder" else { return }
+            for down in [true, false] {
+                CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(kVK_Return), keyDown: down)?.post(tap: .cghidEventTap)
+            }
+        }
+    }
+
     func placeOnDesktop(_ url: URL) {
         guard let main = NSScreen.screens.first else { return }
         let x = Int(clickPoint.x), y = Int(main.frame.maxY - clickPoint.y) // у Finder отсчёт от верхнего края
@@ -501,6 +549,7 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
                 delay 0.1
             end repeat
             set desktop position of item "\(name)" of desktop to {\(x), \(y)}
+            \(renameInFinder ? "activate\n        select item \"\(name)\" of desktop" : "")
         end tell
         """
         var err: NSDictionary?
@@ -586,11 +635,14 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
     let loginBox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     let updatesBox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     let openBox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    let renameBox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     let finderLabel = NSTextField(labelWithString: "")
     let finderButton = NSButton()
     let version = NSTextField(labelWithString: "")
     let templatesButton = NSButton()
     let templatesHint = NSTextField(labelWithString: "")
+    let templatesChange = NSButton()
+    let templatesPath = NSTextField(labelWithString: "")
     let fmtLabel = NSTextField(labelWithString: "")
     let fmtButton = NSButton()
     var monitor: Any?
@@ -606,7 +658,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
 
     init(app: App) {
         self.app = app
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 380, height: 424),
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 380, height: 474),
                           styleMask: [.titled, .closable], backing: .buffered, defer: false)
         super.init()
         window.isReleasedWhenClosed = false
@@ -618,36 +670,38 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
             if self?.monitor != nil { self?.finish(nil) }
         }
 
-        hotLabel.frame = NSRect(x: 20, y: 376, width: 150, height: 20)
-        hotButton.frame = NSRect(x: 175, y: 369, width: 185, height: 32)
+        hotLabel.frame = NSRect(x: 20, y: 426, width: 150, height: 20)
+        hotButton.frame = NSRect(x: 175, y: 419, width: 185, height: 32)
         hotButton.bezelStyle = .rounded
         hotButton.identifier = NSUserInterfaceItemIdentifier("main")
         hotButton.target = self; hotButton.action = #selector(record(_:))
-        note.frame = NSRect(x: 20, y: 352, width: 340, height: 16)
+        note.frame = NSRect(x: 20, y: 402, width: 340, height: 16)
         note.alignment = .right
         note.font = .systemFont(ofSize: 11); note.textColor = .systemRed
 
-        fmtLabel.frame = NSRect(x: 20, y: 320, width: 150, height: 20)
-        fmtButton.frame = NSRect(x: 175, y: 313, width: 185, height: 32)
+        fmtLabel.frame = NSRect(x: 20, y: 370, width: 150, height: 20)
+        fmtButton.frame = NSRect(x: 175, y: 363, width: 185, height: 32)
         fmtButton.bezelStyle = .rounded
         fmtButton.target = self; fmtButton.action = #selector(showFormatKeys)
 
-        langLabel.frame = NSRect(x: 20, y: 276, width: 150, height: 20)
-        langPopup.frame = NSRect(x: 175, y: 270, width: 185, height: 30)
+        langLabel.frame = NSRect(x: 20, y: 326, width: 150, height: 20)
+        langPopup.frame = NSRect(x: 175, y: 320, width: 185, height: 30)
         for l in supportedLangs {
             langPopup.addItem(withTitle: l.name)
             langPopup.lastItem?.representedObject = l.code
         }
         langPopup.target = self; langPopup.action = #selector(changeLang)
 
-        loginBox.frame = NSRect(x: 20, y: 232, width: 340, height: 20)
+        loginBox.frame = NSRect(x: 20, y: 282, width: 340, height: 20)
         loginBox.target = self; loginBox.action = #selector(toggleLogin)
-        updatesBox.frame = NSRect(x: 20, y: 202, width: 340, height: 20)
+        updatesBox.frame = NSRect(x: 20, y: 252, width: 340, height: 20)
         updatesBox.target = self; updatesBox.action = #selector(toggleUpdates)
-        openBox.frame = NSRect(x: 20, y: 172, width: 340, height: 20)
+        openBox.frame = NSRect(x: 20, y: 222, width: 340, height: 20)
         openBox.target = self; openBox.action = #selector(toggleOpenAfter)
-        finderLabel.frame = NSRect(x: 20, y: 134, width: 230, height: 20)
-        finderButton.frame = NSRect(x: 245, y: 127, width: 120, height: 32)
+        renameBox.frame = NSRect(x: 20, y: 192, width: 340, height: 20)
+        renameBox.target = self; renameBox.action = #selector(toggleRename)
+        finderLabel.frame = NSRect(x: 20, y: 154, width: 230, height: 20)
+        finderButton.frame = NSRect(x: 245, y: 147, width: 120, height: 32)
         finderButton.bezelStyle = .rounded
         finderButton.target = self; finderButton.action = #selector(openFinderExtensions)
 
@@ -656,13 +710,19 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         version.frame = NSRect(x: 20, y: 16, width: 340, height: 16)
         version.font = .systemFont(ofSize: 11); version.textColor = .tertiaryLabelColor
 
-        templatesButton.frame = NSRect(x: 14, y: 84, width: 200, height: 32)
+        templatesButton.frame = NSRect(x: 14, y: 84, width: 186, height: 32)
         templatesButton.bezelStyle = .rounded
         templatesButton.target = self; templatesButton.action = #selector(openTemplates)
         templatesHint.frame = NSRect(x: 20, y: 46, width: 340, height: 34)
         templatesHint.font = .systemFont(ofSize: 11); templatesHint.textColor = .secondaryLabelColor
+        templatesChange.frame = NSRect(x: 202, y: 84, width: 164, height: 32)
+        templatesChange.bezelStyle = .rounded
+        templatesChange.target = self; templatesChange.action = #selector(changeTemplates)
+        templatesPath.frame = NSRect(x: 20, y: 120, width: 340, height: 16)
+        templatesPath.font = .systemFont(ofSize: 11); templatesPath.textColor = .secondaryLabelColor
+        templatesPath.lineBreakMode = .byTruncatingMiddle
 
-        [hotLabel, hotButton, note, fmtLabel, fmtButton, langLabel, langPopup, loginBox, updatesBox, openBox, finderLabel, finderButton, templatesButton, templatesHint, version]
+        [hotLabel, hotButton, note, fmtLabel, fmtButton, langLabel, langPopup, loginBox, updatesBox, openBox, renameBox, finderLabel, finderButton, templatesPath, templatesButton, templatesChange, templatesHint, version]
             .forEach { v.addSubview($0) }
     }
 
@@ -681,6 +741,13 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         updatesBox.state = checkUpdates ? .on : .off
         openBox.title = L("openAfter")
         openBox.state = openAfterCreate ? .on : .off
+        renameBox.title = L("renameFinder")
+        renameBox.toolTip = L("tipRename")
+        renameBox.state = renameInFinder ? .on : .off
+        templatesChange.title = L("templatesChange")
+        templatesChange.toolTip = L("tipTemplatesChange")
+        templatesPath.stringValue = (userTemplatesDir.path as NSString).abbreviatingWithTildeInPath
+        templatesPath.toolTip = userTemplatesDir.path
         templatesButton.title = L("templatesBtn")
         templatesHint.stringValue = L("templatesHint")
         hotButton.title = shortcutText(code: hotKeyCode, mods: hotKeyMods)
@@ -692,8 +759,17 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         refresh()
         note.stringValue = ""
         window.center()
+        showInDock(true)
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+    }
+
+    var hasOpenWindows: Bool { window.isVisible || fmtWindow?.isVisible == true }
+
+    // У фоновой программы нет значка в Доке и в ⌘Tab: ушли в другую программу — окна не вернуть.
+    // Поэтому, пока открыты настройки или «Форматы», Blankly показывается в Доке, закрыли всё — прячется.
+    func showInDock(_ on: Bool) {
+        NSApp.setActivationPolicy(on ? .regular : .accessory)
     }
 
     // Запись сочетания: главное (owner "main") или для формата (owner — расширение)
@@ -759,6 +835,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         fmtRows = menuFormats().all
         fmtTable?.reloadData()
         fmtWindow?.center()
+        showInDock(true)
         fmtWindow?.makeKeyAndOrderFront(nil)
     }
 
@@ -775,7 +852,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         v.addSubview(fmtHint)
 
         let table = NSTableView()
-        for (id, title, width) in [("show", L("colShow"), 80), ("name", L("base"), Int(fmtNameColumnWidth)), ("key", L("colKey"), 160), ("open", L("colOpen"), Int(fmtOpenColumnWidth))] {
+        for (id, title, width) in [("show", L("colShow"), Int(fmtShowColumnWidth)), ("name", L("base"), Int(fmtNameColumnWidth)), ("key", L("colKey"), Int(fmtKeyColumnWidth)), ("open", L("colOpen"), Int(fmtOpenColumnWidth))] {
             let c = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(id))
             c.title = title; c.width = CGFloat(width); c.resizingMask = []
             table.addTableColumn(c)
@@ -815,7 +892,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
             b.state = hiddenFormats.contains(f.ext) ? .off : .on
             b.setAccessibilityLabel(f.title)
             let cell = NSView()
-            b.frame = NSRect(x: 30, y: 5, width: 20, height: 20)
+            b.frame = NSRect(x: (fmtShowColumnWidth - 20) / 2, y: 5, width: 20, height: 20)
             cell.addSubview(b)
             return cell
         case "name":
@@ -834,6 +911,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
             b.identifier = id
             b.target = self; b.action = #selector(record(_:))
             b.setAccessibilityLabel("\(f.title): \(L("colKey"))")
+            b.toolTip = L("tipKey")
             let x = NSButton(frame: NSRect(x: 126, y: 3, width: 26, height: 24))
             x.bezelStyle = .inline; x.isBordered = false
             x.image = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: L("fmtClear"))
@@ -858,6 +936,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         let p = NSPopUpButton(frame: NSRect(x: 0, y: 2, width: fmtOpenColumnWidth - 8, height: 26), pullsDown: false)
         p.identifier = NSUserInterfaceItemIdentifier(f.ext)
         p.setAccessibilityLabel("\(f.title): \(L("colOpen"))")
+        p.toolTip = L("tipOpen")
         p.target = self; p.action = #selector(openChanged(_:))
         fillApps(p, ext: f.ext)
         cell.addSubview(p)
@@ -978,6 +1057,33 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
 
     @objc func toggleOpenAfter() { openAfterCreate = openBox.state == .on }
 
+    // Включили — macOS один раз спросит «Универсальный доступ» (нужен, чтобы нажать Enter в Finder)
+    @objc func toggleRename() {
+        renameInFinder = renameBox.state == .on
+        if renameInFinder, !AXIsProcessTrusted() {
+            _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
+        }
+    }
+
+    // Другая папка шаблонов. Старые шаблоны копируем в новую (что там уже есть — не трогаем), старая остаётся как была.
+    @objc func changeTemplates() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.directoryURL = userTemplatesDir
+        NSApp.activate(ignoringOtherApps: true)
+        guard panel.runModal() == .OK, let dir = panel.url,
+              dir.standardizedFileURL != userTemplatesDir.standardizedFileURL else { return }
+        let fm = FileManager.default
+        for item in (try? fm.contentsOfDirectory(at: userTemplatesDir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? [] {
+            let to = dir.appendingPathComponent(item.lastPathComponent)
+            if !fm.fileExists(atPath: to.path) { try? fm.copyItem(at: item, to: to) }
+        }
+        userTemplatesDir = dir
+        refresh()
+    }
+
     @objc func toggleUpdates() {
         checkUpdates = updatesBox.state == .on
         app.updater.updater.automaticallyChecksForUpdates = checkUpdates
@@ -997,6 +1103,11 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
 
     func windowWillClose(_ n: Notification) {
         if monitor != nil { finish(nil) }
+        // окно ещё видно во время willClose — проверяем после закрытия
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.hasOpenWindows else { return }
+            self.showInDock(false)
+        }
     }
 }
 

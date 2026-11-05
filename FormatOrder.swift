@@ -6,6 +6,14 @@ enum FormatPrefs {
     // Ключи в defaults «app.blankly»: оба — массивы расширений, "" — «Новая папка»
     static let orderKey = "formatOrder"
     static let hiddenKey = "hiddenFormats"
+    // Включённые пользователем форматы из FormatList.hiddenByDefault
+    static let shownKey = "shownFormats"
+
+    // Что скрыто на деле: сохранённое скрытое + скрытые по умолчанию, которые не включали.
+    // Формат, скрытый по умолчанию в новой версии, у всех появляется выключенным.
+    static func hidden(stored: [String], shown: [String]) -> [String] {
+        stored + FormatList.hiddenByDefault.filter { !stored.contains($0) && !shown.contains($0) }
+    }
 
     // exts — доступные форматы в порядке по умолчанию.
     // ordered — все они в сохранённом порядке; новый формат, которого там нет (появился в новой версии),

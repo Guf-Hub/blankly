@@ -44,16 +44,17 @@ Then choose **New Folder** or a file format, type a name and press Enter. The na
 - In any other app — onto the Desktop, right where the cursor was.
 - If the name is taken, Blankly adds a number: `Notes 1.txt`.
 
-**Formats:** `txt`, `rtf`, `md`, `json`, `csv`, `html`, `py`, `docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`.
+**Formats:** `txt`, `rtf`, `md`, `json`, `csv`, `html`, `py`, `docx`, `xlsx`, `pptx`, `pages`, `numbers`, `key`, `odt`, `ods`, `odp`. For code, off by default — turn them on in **Settings → Formats**: `sh`, `rb`, `php`, `js`, `css`, `xml`, `yaml`, `swift`, `tex`.
 
 - Only formats your Mac can open are shown. No Word or Pages — no `.docx` in the menu.
 - Hide formats you never use and drag the rest into your own order in **Settings → Formats**. The menu, the Finder right-click and the toolbar button all follow it. A hidden format keeps its shortcut.
-- Files are empty, except `html` (an HTML5 starter page) and Office documents.
-- Office files are real empty documents, not zero-byte files, so Word, Excel and LibreOffice open them without complaints.
+- Files are empty, except `html` (an HTML5 starter page), `rtf`, Office and iWork (Pages, Numbers, Keynote) documents, and a first line where a format needs one (`<?php`, `<?xml …?>`, a LaTeX skeleton).
+- Scripts (`sh`, `py`, `rb`) start with a `#!` line and are created executable, ready for `./script.sh`.
+- Office and iWork (Pages, Numbers, Keynote) files are real empty documents, not zero-byte files, so Word, Excel, Pages, Numbers, Keynote and LibreOffice open them without complaints.
 
 **Your own templates.** Settings → **Templates Folder…** opens a folder. Any file you put there shows up in the menu under *My Templates*, and new files are copies of it — a `.py` with your boilerplate, a `.yaml` config, anything. A **folder** in there works too: it shows up in the menu and is copied whole, with everything inside. In the Finder menu they are under **More…**.
 
-This is also how to add formats only their own app can create — Pages, Numbers, Keynote, Photoshop, AutoCAD, a video editor project: create an empty document in that app and save it into the Templates folder.
+This is also how to add formats only their own app can create — Photoshop, AutoCAD, a video editor project: create an empty document in that app and save it into the Templates folder.
 
 **Variables in templates.** In a template's file name and inside text templates (UTF-8), Blankly replaces `{date}` with `2026-11-05`, `{time}` with `14-30` and `{name}` with the name you typed. For a template folder this applies to the names of files inside it as well. Binary files (such as `.docx`) are copied untouched. The name suggested in the name dialog is the template's own name with `{date}` and `{time}` filled in.
 
@@ -71,8 +72,9 @@ Open the menu (Control + Option + N) → **Settings…** at the bottom.
 | Open at login | Starts Blankly in the background when you log in, so the shortcut always works. |
 | Finder right-click | **Turn On…** opens the macOS list of Finder extensions; enable Blankly there. |
 | Open file right after creating | Off by default. When on, a new file opens in its default app. A folder is only selected in Finder. If nothing can open the file, it is just selected. |
+| Don't ask for a name — rename in Finder | Off by default. When on, the file is created at once and Finder starts renaming it, as with its own New Folder. Needs the Accessibility permission (macOS asks once). |
 | Check for updates daily | See [Updates](#updates). |
-| Templates Folder… | Opens the folder with your own templates. |
+| Templates Folder… / Change… | The path above the buttons shows where your templates are. **Templates Folder…** opens it. **Change…** picks another folder, for example one in iCloud Drive to share templates between Macs; templates you already have are copied there. |
 
 ## Finder
 
@@ -132,7 +134,7 @@ Requires macOS 13 or later. Apple Silicon and Intel.
 brew uninstall --zap --cask blankly
 ```
 
-Without Homebrew: quit Blankly (menu → **Quit**), move it from Applications to the Trash, and delete `~/Library/Application Support/Blankly` (your templates) if you don't need it.
+Without Homebrew: quit Blankly (menu → **Quit**), move it from Applications to the Trash, and delete `~/Library/Application Support/Blankly` (your templates, unless you moved them with **Change…**) if you don't need it.
 
 ## Build from source
 
