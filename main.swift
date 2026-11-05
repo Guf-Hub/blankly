@@ -347,7 +347,14 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
         var at = clickPoint
         if let screen = NSScreen.screens.first(where: { NSMouseInRect(at, $0.frame, false) }) ?? NSScreen.main {
             let vis = screen.visibleFrame
-            at.y = min(max(at.y, vis.minY + menu.size.height), vis.maxY)
+            // Dock, который прячется сам, в visibleFrame не учтён — оставляем ему место, чтобы меню не легло на него
+            var bottom = vis.minY
+            let dock = UserDefaults(suiteName: "com.apple.dock")
+            if dock?.bool(forKey: "autohide") == true, (dock?.string(forKey: "orientation") ?? "bottom") == "bottom" {
+                let tile = dock?.double(forKey: "tilesize") ?? 0
+                bottom = max(bottom, screen.frame.minY + (tile > 0 ? tile : 48) + 24)
+            }
+            at.y = min(max(at.y, bottom + menu.size.height), vis.maxY)
             at.x = max(min(at.x, vis.maxX - menu.size.width), vis.minX)
         }
         menu.popUp(positioning: nil, at: at, in: nil)
