@@ -124,7 +124,11 @@ zsh release.sh --notes "…" # maintainer: build, sign the update, publish a Git
 
 The first build downloads [Sparkle](https://github.com/sparkle-project/Sparkle) 2.10.0 into `.vendor/` and checks its SHA-256.
 
-`main.swift` is the whole app, `FinderExtension.swift` is the Finder extension, `icon.swift` draws the icon, `Resources/templates` holds the empty Office documents.
+`main.swift` is the app, `Core.swift` holds the logic without UI (names, strings, shortcut conflicts), `FinderExtension.swift` is the Finder extension, `icon.swift` draws the icon, `Resources/templates` holds the empty Office documents.
+
+### Tests
+
+`zsh test.sh` compiles `Core.swift` with `Tests/*.swift` using plain `swiftc` (no Xcode project) and exits non-zero on any failure. It checks name numbering, shortcut conflicts, that every string has every language, and that every Office template is a valid zip. CI runs it on each pull request.
 
 ## Support
 
