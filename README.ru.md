@@ -3,7 +3,7 @@
 <h1 align="center">Blankly</h1>
 
 <p align="center">Новый файл или папка там, где вы сейчас, на macOS.<br>
-Нажмите <kbd>⌃⌥N</kbd>, выберите формат, введите имя.</p>
+Нажмите <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, выберите формат, введите имя.</p>
 
 <p align="center"><a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Скачать для macOS</b></a></p>
 

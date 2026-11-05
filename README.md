@@ -3,7 +3,7 @@
 <h1 align="center">Blankly</h1>
 
 <p align="center">Create a new file or folder right where you are on macOS.<br>
-Press <kbd>⌃⌥N</kbd>, pick a format, type a name.</p>
+Press <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, pick a format, type a name.</p>
 
 <p align="center"><a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Download for macOS</b></a></p>
 
