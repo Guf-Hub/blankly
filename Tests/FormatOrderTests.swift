@@ -5,12 +5,18 @@ func testFormatOrder() {
     // нет ключей — как раньше
     var r = FormatPrefs.apply(base, order: [], hidden: [])
     eq(r.ordered, base, "по умолчанию"); eq(r.shown, base, "всё видно")
-    // свой порядок; новые форматы (docx) — в конец
+    // свой порядок; новый формат (docx) встаёт за своим соседом по умолчанию (md)
     r = FormatPrefs.apply(base, order: ["md", "", "txt"], hidden: [])
-    eq(r.ordered, ["md", "", "txt", "docx"], "порядок")
+    eq(r.ordered, ["md", "docx", "", "txt"], "порядок")
+    // новый формат из новой версии: rtf за txt, даже если пользователь всё переставил
+    r = FormatPrefs.apply(["", "txt", "rtf", "md"], order: ["md", "txt", ""], hidden: [])
+    eq(r.ordered, ["md", "txt", "rtf", ""], "rtf за txt")
+    // у нового формата нет соседа в списке — в конец
+    r = FormatPrefs.apply(["new", "txt"], order: ["txt"], hidden: [])
+    eq(r.ordered, ["txt", "new"], "без соседа — в конец")
     // в порядке есть то, чего больше нет, и повторы — игнорируем
     r = FormatPrefs.apply(base, order: ["pdf", "md", "md"], hidden: [])
-    eq(r.ordered, ["md", "", "txt", "docx"], "лишнее и дубли")
+    eq(r.ordered, ["md", "docx", "", "txt"], "лишнее и дубли")
     // скрытие
     r = FormatPrefs.apply(base, order: ["md"], hidden: ["docx", ""])
     eq(r.shown, ["md", "txt"], "скрыты docx и папка"); eq(r.ordered.count, 4, "скрытые остаются в списке")
