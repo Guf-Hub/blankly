@@ -9,6 +9,7 @@ testLanguageChoice()
 testFormatColumns()
 testFormatOrder()
 testCreation()
+testTemplateLinksAndFormatList()
 testTemplates(dir: templatesDir)
 
 print(failures == 0 ? "OK: \(checks) проверок" : "FAILED: \(failures) из \(checks)")

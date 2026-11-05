@@ -392,19 +392,7 @@ let fmtOpenColumnWidth: CGFloat = 230
 
 struct Format { let ext: String; let title: String }
 func formatGroups(lang: String) -> [[Format]] {
-    [[Format(ext: "txt", title: "\(L("text", lang)) (.txt)"),
-      Format(ext: "rtf", title: "RTF (.rtf)"),
-      Format(ext: "md", title: "Markdown (.md)"),
-      Format(ext: "json", title: "JSON (.json)"),
-      Format(ext: "csv", title: "CSV (.csv)"),
-      Format(ext: "html", title: "HTML (.html)"),
-      Format(ext: "py", title: "Python (.py)")],
-     [Format(ext: "docx", title: "Word (.docx)"),
-      Format(ext: "xlsx", title: "Excel (.xlsx)"),
-      Format(ext: "pptx", title: "PowerPoint (.pptx)")],
-     [Format(ext: "odt", title: "LibreOffice Writer (.odt)"),
-      Format(ext: "ods", title: "LibreOffice Calc (.ods)"),
-      Format(ext: "odp", title: "LibreOffice Impress (.odp)")]]
+    FormatList.groups(text: L("text", lang)).map { $0.map { Format(ext: $0.ext, title: $0.title) } }
 }
 
 // Пункты меню в нужном порядке: папка ("") и форматы с номером группы (для разделителей).
@@ -462,6 +450,11 @@ func fillData(_ data: Data, name: String, now: Date = Date()) -> Data {
 // Копия шаблона (файл или папка целиком) в dst; в папке подставляем и имена внутри
 func copyTemplate(from src: URL, to dst: URL, name: String, now: Date = Date()) throws {
     let fm = FileManager.default
+    // символическую ссылку копируем как ссылку: не заходим в неё (петля) и не пишем через неё в чужой файл
+    if (try? src.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true {
+        try fm.copyItem(at: src, to: dst)
+        return
+    }
     var isDir: ObjCBool = false
     fm.fileExists(atPath: src.path, isDirectory: &isDir)
     if isDir.boolValue {

@@ -147,7 +147,11 @@ func create(ext: String, base: String, in dir: URL, template: URL? = nil) -> URL
         } else {
             try Data(starterText(ext).utf8).write(to: url, options: .withoutOverwriting)
         }
-    } catch { return nil }
+    } catch {
+        // не оставляем недоделанную копию шаблона (url был свободен — всё, что там есть, создали мы)
+        if template != nil { try? fm.removeItem(at: url) }
+        return nil
+    }
     return url
 }
 
@@ -213,14 +217,16 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
 
     func applicationDidFinishLaunching(_ n: Notification) {
         installHotKeyHandler()
-        if !registerHotKey(code: hotKeyCode, mods: hotKeyMods) {
-            openSettings(); settings?.note.stringValue = L("busy")
-            return
-        }
+        let hotKeyOK = registerHotKey(code: hotKeyCode, mods: hotKeyMods)
+        // клавиши форматов и обновления — даже если главное сочетание занято
         _ = registerFormatKeys()
         updater.updater.automaticallyChecksForUpdates = checkUpdates
         updater.startUpdater()
-        if !launchedAtLogin && !launchedByLink && !CommandLine.arguments.contains("--background") { showMenu() }
+        if !hotKeyOK {
+            openSettings(); settings?.note.stringValue = L("busy")
+        } else if !launchedAtLogin && !launchedByLink && !CommandLine.arguments.contains("--background") {
+            showMenu()
+        }
     }
 
     // Фоновое приложение: найденное обновление не выскакивает окном, а ждёт в меню
@@ -325,7 +331,7 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
                 menu.addItem(it)
             }
         }
-        if clipboardContent() != nil {
+        if clipboardHasContent() {
             menu.addItem(.separator())
             let c = item(L("fromClip"), ext: "", icon: NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: nil))
             c.representedObject = "clipboard"
@@ -394,8 +400,11 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
             let hint = fillVars(template.deletingPathExtension().lastPathComponent, name: "").trimmingCharacters(in: .whitespaces)
             if !hint.isEmpty { fallback = isFolder(template) ? fillVars(template.lastPathComponent, name: "").trimmingCharacters(in: .whitespaces) : hint }
         }
+        let dir = targetDir, point = clickPoint
         guard let base = askName(ext: ext, fallback: fallback) else { return }
-        if let url = create(ext: ext, base: base, in: targetDir, template: template) {
+        // пока окно имени было открыто, сочетание могли нажать снова — создаём там, откуда звали это окно
+        targetDir = dir; clickPoint = point
+        if let url = create(ext: ext, base: base, in: dir, template: template) {
             reveal(url)
         } else {
             NSSound.beep()
@@ -415,11 +424,19 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
         }
     }
 
+    // Есть ли что вставить — для пункта меню; картинку не перекодируем, смотрим только тип
+    func clipboardHasContent() -> Bool {
+        let pb = NSPasteboard.general
+        if let text = pb.string(forType: .string) { return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        return pb.availableType(from: [.png, .tiff]) != nil
+    }
+
     // Что лежит в буфере: текст → .txt/.json/.html, картинка → .png
     func clipboardContent() -> (ext: String, data: Data)? {
         let pb = NSPasteboard.general
-        if let text = pb.string(forType: .string), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return (clipboardExt(text: text), Data(text.utf8))
+        if let text = pb.string(forType: .string) {
+            let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            return t.isEmpty ? nil : (clipboardExt(text: text), Data(text.utf8))
         }
         if let png = pb.data(forType: .png) { return ("png", png) }
         if let tiff = pb.data(forType: .tiff), let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
@@ -430,8 +447,10 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
 
     func pasteFromClipboard() {
         guard let clip = clipboardContent() else { NSSound.beep(); return }
+        let dir = targetDir, point = clickPoint
         guard let base = askName(ext: clip.ext, fallback: L("clipName")) else { return }
-        let url = freeURL(in: targetDir, base: base, ext: clip.ext)
+        targetDir = dir; clickPoint = point
+        let url = freeURL(in: dir, base: base, ext: clip.ext)
         do {
             try clip.data.write(to: url, options: .withoutOverwriting)
             reveal(url)
@@ -448,7 +467,9 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
     func askName(ext: String, fallback: String) -> String? {
         let a = NSAlert()
         a.messageText = ext.isEmpty ? L("askFolder") : L("askFile")
-        a.informativeText = String(format: L("askWhere"), name(of: targetDir))
+        // полный путь (~/…), а не только имя: папку могла прислать ссылка blankly://, и имя одно ничего не говорит
+        a.informativeText = String(format: L("askWhere"), isDesktop(targetDir) ? L("desktop")
+                                   : (targetDir.path as NSString).abbreviatingWithTildeInPath)
         a.icon = ext.isEmpty ? NSWorkspace.shared.icon(for: .folder)
             : UTType(filenameExtension: ext).map { NSWorkspace.shared.icon(for: $0) }
         a.addButton(withTitle: L("create"))
@@ -591,32 +612,37 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         window.isReleasedWhenClosed = false
         window.delegate = self
         let v = window.contentView!
+        // Запись сочетания ловит клавиши, только пока Blankly впереди; ушли в другую программу — отменяем,
+        // иначе все сочетания так и остались бы выключенными
+        NotificationCenter.default.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            if self?.monitor != nil { self?.finish(nil) }
+        }
 
-        hotLabel.frame = NSRect(x: 20, y: 346, width: 150, height: 20)
-        hotButton.frame = NSRect(x: 175, y: 339, width: 185, height: 32)
+        hotLabel.frame = NSRect(x: 20, y: 376, width: 150, height: 20)
+        hotButton.frame = NSRect(x: 175, y: 369, width: 185, height: 32)
         hotButton.bezelStyle = .rounded
         hotButton.identifier = NSUserInterfaceItemIdentifier("main")
         hotButton.target = self; hotButton.action = #selector(record(_:))
-        note.frame = NSRect(x: 20, y: 322, width: 340, height: 16)
+        note.frame = NSRect(x: 20, y: 352, width: 340, height: 16)
         note.alignment = .right
         note.font = .systemFont(ofSize: 11); note.textColor = .systemRed
 
-        fmtLabel.frame = NSRect(x: 20, y: 290, width: 150, height: 20)
-        fmtButton.frame = NSRect(x: 175, y: 283, width: 185, height: 32)
+        fmtLabel.frame = NSRect(x: 20, y: 320, width: 150, height: 20)
+        fmtButton.frame = NSRect(x: 175, y: 313, width: 185, height: 32)
         fmtButton.bezelStyle = .rounded
         fmtButton.target = self; fmtButton.action = #selector(showFormatKeys)
 
-        langLabel.frame = NSRect(x: 20, y: 246, width: 150, height: 20)
-        langPopup.frame = NSRect(x: 175, y: 240, width: 185, height: 30)
+        langLabel.frame = NSRect(x: 20, y: 276, width: 150, height: 20)
+        langPopup.frame = NSRect(x: 175, y: 270, width: 185, height: 30)
         for l in supportedLangs {
             langPopup.addItem(withTitle: l.name)
             langPopup.lastItem?.representedObject = l.code
         }
         langPopup.target = self; langPopup.action = #selector(changeLang)
 
-        loginBox.frame = NSRect(x: 20, y: 202, width: 340, height: 20)
+        loginBox.frame = NSRect(x: 20, y: 232, width: 340, height: 20)
         loginBox.target = self; loginBox.action = #selector(toggleLogin)
-        updatesBox.frame = NSRect(x: 20, y: 172, width: 340, height: 20)
+        updatesBox.frame = NSRect(x: 20, y: 202, width: 340, height: 20)
         updatesBox.target = self; updatesBox.action = #selector(toggleUpdates)
         openBox.frame = NSRect(x: 20, y: 172, width: 340, height: 20)
         openBox.target = self; openBox.action = #selector(toggleOpenAfter)
@@ -638,8 +664,6 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
 
         [hotLabel, hotButton, note, fmtLabel, fmtButton, langLabel, langPopup, loginBox, updatesBox, openBox, finderLabel, finderButton, templatesButton, templatesHint, version]
             .forEach { v.addSubview($0) }
-        // окно выросло на строку под «Открывать сразу»: всё от «Проверять обновления» и выше сдвигаем вверх
-        v.subviews.filter { $0.frame.minY >= 172 && $0 !== openBox }.forEach { $0.frame.origin.y += 30 }
     }
 
     func refresh() {
@@ -818,7 +842,8 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
             x.target = self; x.action = #selector(clearFormatKey(_:))
             cell.addSubview(b); cell.addSubview(x)
             fmtButtons[f.ext] = b
-            refreshFormatKeys()
+            if let k = formatKeys[f.ext], k.count == 2 { b.title = shortcutText(code: UInt32(k[0]), mods: UInt32(k[1])) }
+            else { b.title = "—" }
             return cell
         case "open":
             return f.ext.isEmpty ? NSView() : openPopup(for: f)
