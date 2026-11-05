@@ -8,7 +8,7 @@
 Create a new file or folder right where you are on macOS.<br>
 Press <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, pick a format, type a name.
 
-<a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Download for macOS</b></a> &nbsp;·&nbsp; <a href="#support">♥ Support</a> &nbsp;·&nbsp; <b>English</b> | <a href="README.ru.md">Русский</a>
+<a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Download for macOS</b></a> &nbsp;·&nbsp; <a href="#support">♥ Support</a> &nbsp;·&nbsp; <b>English</b> | <a href="docs/README.ru.md">Русский</a>
 
 <a href="https://github.com/Guf-Hub/blankly/releases/latest"><img src="https://img.shields.io/github/v/release/Guf-Hub/blankly?label=version" alt="version"></a>
 <a href="https://github.com/Guf-Hub/blankly/releases"><img src="https://img.shields.io/github/downloads/Guf-Hub/blankly/Blankly.dmg?label=installs" alt="installs"></a>
