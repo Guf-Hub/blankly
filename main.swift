@@ -7,6 +7,7 @@ import Carbon.HIToolbox
 import ServiceManagement
 import UniformTypeIdentifiers
 import FinderSync
+import Sparkle
 
 // MARK: - Настройки и язык
 
@@ -70,7 +71,8 @@ let strings: [String: (ru: String, en: String)] = [
     "login": ("Запускать при входе в систему", "Open at login"),
     "loginFail": ("Не удалось изменить автозапуск", "Couldn’t change login item"),
     "myTemplates": ("Мои шаблоны", "My Templates"),
-    "updateAvail": ("Доступна версия %@ — скачать", "Version %@ is available — download"),
+    "updateAvail": ("Доступна версия %@ — обновить", "Version %@ is available — update"),
+    "checkNow": ("Проверить обновления…", "Check for Updates…"),
     "finderRow": ("Правый клик в Finder: %@", "Finder right-click: %@"),
     "on": ("включён", "on"),
     "off": ("выключен", "off"),
@@ -193,20 +195,6 @@ func create(ext: String, base: String, in dir: URL, template: URL? = nil) -> URL
     return url
 }
 
-// MARK: - Обновления
-
-let repoAPI = URL(string: "https://api.github.com/repos/Guf-Hub/blankly/releases/latest")!
-let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
-
-// "1.10" > "1.9": сравниваем по числам
-func isNewer(_ a: String, than b: String) -> Bool {
-    let x = a.split(separator: ".").map { Int($0) ?? 0 }, y = b.split(separator: ".").map { Int($0) ?? 0 }
-    for i in 0..<max(x.count, y.count) {
-        let l = i < x.count ? x[i] : 0, r = i < y.count ? y[i] : 0
-        if l != r { return l > r }
-    }
-    return false
-}
 
 // MARK: - Сочетание клавиш
 
@@ -272,7 +260,7 @@ func carbonMods(_ f: NSEvent.ModifierFlags) -> UInt32 {
 
 // MARK: - Приложение
 
-final class App: NSObject, NSApplicationDelegate {
+final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate {
     var targetDir = desktopURL
     var clickPoint = NSPoint.zero // где был курсор при вызове меню — туда ставим файл на рабочем столе
     var hotKeyRef: EventHotKeyRef?
@@ -281,8 +269,10 @@ final class App: NSObject, NSApplicationDelegate {
     var settings: SettingsWindow?
     var launchedAtLogin = false
     var launchedByLink = false
-    var update: (version: String, page: URL)?
-    var updateTimer: Timer?
+    // Обновления — Sparkle: раз в день читает appcast.xml из последнего релиза на GitHub,
+    // проверяет подпись ключом из Info.plist (SUPublicEDKey) и ставит новую версию сам.
+    lazy var updater = SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: nil, userDriverDelegate: self)
+    var updateVersion: String? // нашлась новая версия — показываем пункт вверху меню
 
     func applicationWillFinishLaunching(_ n: Notification) {
         // Запуск как объект входа (автозапуск) — меню не показываем.
@@ -299,33 +289,22 @@ final class App: NSObject, NSApplicationDelegate {
             return
         }
         _ = registerFormatKeys()
-        startUpdateChecks()
+        updater.updater.automaticallyChecksForUpdates = checkUpdates
+        updater.startUpdater()
         if !launchedAtLogin && !launchedByLink && !CommandLine.arguments.contains("--background") { showMenu() }
     }
 
-    // Раз в день спрашиваем GitHub о последнем релизе. Никаких данных не отправляем.
-    func startUpdateChecks() {
-        updateTimer?.invalidate()
-        guard checkUpdates else { update = nil; return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { self.checkForUpdate() }
-        updateTimer = Timer.scheduledTimer(withTimeInterval: 24 * 3600, repeats: true) { _ in self.checkForUpdate() }
+    // Фоновое приложение: найденное обновление не выскакивает окном, а ждёт в меню
+    var supportsGentleScheduledUpdateReminders: Bool { true }
+    func standardUserDriverShouldHandleShowingScheduledUpdate(_ update: SUAppcastItem, andInImmediateFocus immediateFocus: Bool) -> Bool { false }
+    func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {
+        if !handleShowingUpdate { updateVersion = update.displayVersionString }
     }
-
-    func checkForUpdate() {
-        var req = URLRequest(url: repoAPI)
-        req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        URLSession.shared.dataTask(with: req) { data, _, _ in
-            guard let data,
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let tag = json["tag_name"] as? String,
-                  let page = (json["html_url"] as? String).flatMap(URL.init(string:)) else { return }
-            let v = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
-            DispatchQueue.main.async { self.update = isNewer(v, than: appVersion) ? (v, page) : nil }
-        }.resume()
-    }
+    func standardUserDriverWillFinishUpdateSession() { updateVersion = nil }
 
     @objc func openUpdate() {
-        if let u = update { NSWorkspace.shared.open(u.page) }
+        NSApp.activate(ignoringOtherApps: true)
+        updater.checkForUpdates(nil)
     }
 
     func applicationShouldHandleReopen(_ s: NSApplication, hasVisibleWindows f: Bool) -> Bool {
@@ -376,8 +355,8 @@ final class App: NSObject, NSApplicationDelegate {
         targetDir = dir ?? hereDir()
 
         let menu = NSMenu()
-        if let u = update {
-            let up = NSMenuItem(title: String(format: L("updateAvail"), u.version), action: #selector(openUpdate), keyEquivalent: "")
+        if let v = updateVersion {
+            let up = NSMenuItem(title: String(format: L("updateAvail"), v), action: #selector(openUpdate), keyEquivalent: "")
             up.target = self
             up.image = NSImage(systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: nil)
             menu.addItem(up)
@@ -415,6 +394,9 @@ final class App: NSObject, NSApplicationDelegate {
                            action: #selector(openSettings), keyEquivalent: "")
         s.target = self
         menu.addItem(s)
+        let u = NSMenuItem(title: L("checkNow"), action: #selector(openUpdate), keyEquivalent: "")
+        u.target = self
+        menu.addItem(u)
         menu.addItem(NSMenuItem(title: L("quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: ""))
 
         NSApp.activate(ignoringOtherApps: true)
@@ -802,7 +784,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
 
     @objc func toggleUpdates() {
         checkUpdates = updatesBox.state == .on
-        app.startUpdateChecks()
+        app.updater.updater.automaticallyChecksForUpdates = checkUpdates
     }
 
     @objc func toggleLogin() {
