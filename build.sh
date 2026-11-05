@@ -5,7 +5,21 @@
 set -e
 cd "${0:A:h}"
 NAME=Blankly
-VERSION=1.2
+VERSION=${BLANKLY_VERSION:-1.3}
+# Откуда приложение берёт обновления (Sparkle). Для проверки обновления можно подменить.
+FEED=${BLANKLY_FEED:-https://github.com/Guf-Hub/blankly/releases/latest/download/appcast.xml}
+SPARKLE_PUBLIC_KEY="BYHCPAXCvZj084k8mOtD13xFD1PukaW4Qtq/MUI0bKU="
+
+# Sparkle — библиотека автообновлений. Скачиваем закреплённую версию и сверяем контрольную сумму.
+SPARKLE_VER=2.10.0
+SPARKLE_SHA=c2bf58aa8387266ac179357b1415d6f2635f044da8be41042af32425dae6da0c
+SPARKLE=.vendor/Sparkle-$SPARKLE_VER
+if [[ ! -d "$SPARKLE/Sparkle.framework" ]]; then
+  mkdir -p "$SPARKLE"
+  curl -sL -o "$SPARKLE.tar.xz" "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VER/Sparkle-$SPARKLE_VER.tar.xz"
+  echo "$SPARKLE_SHA  $SPARKLE.tar.xz" | shasum -a 256 -c --quiet
+  tar -xJf "$SPARKLE.tar.xz" -C "$SPARKLE"
+fi
 APP="/Applications/$NAME.app"
 OUT="build/$NAME.app"
 
@@ -13,9 +27,12 @@ rm -rf build && mkdir -p "$OUT/Contents/MacOS" "$OUT/Contents/Resources/template
 
 # 1. Код: две архитектуры → один файл
 for arch in arm64 x86_64; do
-  swiftc -O -target "$arch-apple-macos13" -o "build/obj/$NAME-$arch" main.swift
+  swiftc -O -target "$arch-apple-macos13" -F "$SPARKLE" -framework Sparkle \
+    -Xlinker -rpath -Xlinker @executable_path/../Frameworks -o "build/obj/$NAME-$arch" main.swift
 done
 lipo -create build/obj/$NAME-arm64 build/obj/$NAME-x86_64 -output "$OUT/Contents/MacOS/$NAME"
+mkdir -p "$OUT/Contents/Frameworks"
+ditto "$SPARKLE/Sparkle.framework" "$OUT/Contents/Frameworks/Sparkle.framework"
 
 # 1б. Расширение Finder (пункт «Новый файл…» в правом клике)
 EXT="$OUT/Contents/PlugIns/BlanklyFinder.appex"
@@ -82,6 +99,9 @@ cat > "$OUT/Contents/Info.plist" <<EOF
 		<key>CFBundleURLName</key><string>app.blankly</string>
 		<key>CFBundleURLSchemes</key><array><string>blankly</string></array>
 	</dict></array>
+	<key>SUFeedURL</key><string>$FEED</string>
+	<key>SUPublicEDKey</key><string>$SPARKLE_PUBLIC_KEY</string>
+	<key>SUEnableAutomaticChecks</key><true/>
 	<key>NSAppleEventsUsageDescription</key><string>Чтобы узнать, какая папка открыта в Finder, и создать файл в ней.</string>
 </dict>
 </plist>

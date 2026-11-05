@@ -64,7 +64,15 @@ macOS always puts items from apps at the bottom of the right-click menu — Blan
 
 ## Updates
 
-Once a day Blankly asks GitHub whether a newer release exists and shows *Version X is available* at the top of the menu. Nothing else is sent. You can turn it off in Settings.
+Blankly updates itself with [Sparkle](https://sparkle-project.org), the standard updater for Mac apps.
+
+- Once a day it reads a small file from the latest GitHub release. If there is a newer version, the top of the menu says *Version X is available — update*. Click it, then **Install Update** — Blankly downloads, replaces itself and restarts. No popups out of nowhere.
+- You can also check any time: menu → **Check for Updates…**
+- Every update is signed with the author's private key, and Blankly refuses an update with a wrong signature — even if someone took over the GitHub account.
+- Nothing about you or your Mac is sent. You can turn the daily check off in Settings.
+- Installed with Homebrew? Updates come either way; `brew upgrade` is not needed.
+
+Versions 1.0–1.2 don't have Sparkle yet: update to 1.3 once by hand (or `brew upgrade --cask blankly`), after that it's automatic.
 
 ## Install
 
@@ -111,7 +119,10 @@ Needs Xcode or Command Line Tools.
 ```bash
 zsh build.sh              # build and install to /Applications
 zsh build.sh --no-install # build only: build/Blankly.app, .zip and .dmg
+zsh release.sh --notes "…" # maintainer: build, sign the update, publish a GitHub release
 ```
+
+The first build downloads [Sparkle](https://github.com/sparkle-project/Sparkle) 2.10.0 into `.vendor/` and checks its SHA-256.
 
 `main.swift` is the whole app, `FinderExtension.swift` is the Finder extension, `icon.swift` draws the icon, `Resources/templates` holds the empty Office documents.
 
