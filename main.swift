@@ -34,77 +34,14 @@ var formatKeys: [String: [Int]] {
     set { defaults.set(newValue, forKey: "formatKeys") }
 }
 
-let strings: [String: (ru: String, en: String)] = [
-    "base": ("Новый файл", "New File"),
-    "createIn": ("Создать в «%@»", "Create in “%@”"),
-    "desktop": ("Рабочий стол", "Desktop"),
-    "folder": ("Новая папка", "New Folder"),
-    "settings": ("Настройки…", "Settings…"),
-    "quit": ("Выйти из Blankly", "Quit Blankly"),
-    "text": ("Текст", "Text"),
-    "lo_text": ("LibreOffice Текст", "LibreOffice Text"),
-    "lo_calc": ("LibreOffice Таблица", "LibreOffice Spreadsheet"),
-    "lo_impress": ("LibreOffice Презентация", "LibreOffice Presentation"),
-    "askFolder": ("Имя новой папки", "Name of the new folder"),
-    "askFile": ("Имя нового файла", "Name of the new file"),
-    "askWhere": ("Будет создано в «%@»", "Will be created in “%@”"),
-    "create": ("Создать", "Create"),
-    "cancel": ("Отмена", "Cancel"),
-    "failTitle": ("Не удалось создать «%@»", "Couldn’t create “%@”"),
-    "failText": ("Возможно, в эту папку нельзя записывать.", "You may not have permission to write to this folder."),
-    "winTitle": ("Blankly — настройки", "Blankly — Settings"),
-    "hotkey": ("Сочетание клавиш:", "Shortcut:"),
-    "press": ("Нажмите сочетание…", "Press shortcut…"),
-    "needMod": ("Нужна клавиша ⌘, ⌃ или ⌥", "Use ⌘, ⌃ or ⌥"),
-    "busy": ("Сочетание занято другой программой", "Shortcut is used by another app"),
-    "language": ("Язык:", "Language:"),
-    "fmtKeys": ("Клавиши форматов:", "Format shortcuts:"),
-    "fmtSetup": ("Настроить…", "Set Up…"),
-    "fmtTitle": ("Blankly — клавиши форматов", "Blankly — Format Shortcuts"),
-    "fmtHint": ("Нажмите на поле и сочетание с ⌃⌥. Файл создаётся сразу,\nбез меню: остаётся только ввести имя.",
-                "Click a field and press a shortcut with ⌃⌥. The file is created\nright away, no menu: just type a name."),
-    "fmtClear": ("Убрать сочетание", "Remove shortcut"),
-    "needCtrlOpt": ("Нужны ⌃ и ⌥ вместе", "Use ⌃ and ⌥ together"),
-    "usedMenu": ("Уже занято: меню Blankly", "Already used: Blankly menu"),
-    "usedFor": ("Уже занято: %@", "Already used: %@"),
-    "usedSystem": ("Занято в macOS: Настройки → Клавиатура", "Used by macOS: Settings → Keyboard"),
-    "login": ("Запускать при входе в систему", "Open at login"),
-    "loginFail": ("Не удалось изменить автозапуск", "Couldn’t change login item"),
-    "myTemplates": ("Мои шаблоны", "My Templates"),
-    "updateAvail": ("Доступна версия %@ — обновить", "Version %@ is available — update"),
-    "checkNow": ("Проверить обновления…", "Check for Updates…"),
-    "finderRow": ("Правый клик в Finder: %@", "Finder right-click: %@"),
-    "on": ("включён", "on"),
-    "off": ("выключен", "off"),
-    "finderBtn": ("Включить…", "Turn On…"),
-    "checkUpdates": ("Проверять обновления раз в день", "Check for updates daily"),
-    "templatesBtn": ("Папка шаблонов…", "Templates Folder…"),
-    "templatesHint": ("Положите туда любой файл — он появится в меню,\nа новый файл будет его копией.",
-                      "Put any file there — it shows up in the menu\nand new files are copies of it."),
-]
 // Окна Sparkle (и другие системные) — на языке Blankly: выбран в настройках — он, не выбран — как в системе.
 // Действует со следующего запуска окна Sparkle; поэтому вызываем и при старте, и при смене языка.
 func applyLanguage() {
     if let chosen = defaults.string(forKey: "lang") { defaults.set([chosen], forKey: "AppleLanguages") }
     else { defaults.removeObject(forKey: "AppleLanguages") }
 }
-func L(_ k: String) -> String { let s = strings[k]!; return lang == "en" ? s.en : s.ru }
-
-struct Format { let ext: String; let title: String }
-func formatGroups() -> [[Format]] {
-    [[Format(ext: "txt", title: "\(L("text")) (.txt)"),
-      Format(ext: "md", title: "Markdown (.md)"),
-      Format(ext: "json", title: "JSON (.json)"),
-      Format(ext: "csv", title: "CSV (.csv)"),
-      Format(ext: "html", title: "HTML (.html)"),
-      Format(ext: "py", title: "Python (.py)")],
-     [Format(ext: "docx", title: "Word (.docx)"),
-      Format(ext: "xlsx", title: "Excel (.xlsx)"),
-      Format(ext: "pptx", title: "PowerPoint (.pptx)")],
-     [Format(ext: "odt", title: "\(L("lo_text")) (.odt)"),
-      Format(ext: "ods", title: "\(L("lo_calc")) (.ods)"),
-      Format(ext: "odp", title: "\(L("lo_impress")) (.odp)")]]
-}
+func L(_ k: String) -> String { L(k, lang) }
+func formatGroups() -> [[Format]] { formatGroups(lang: lang) }
 
 // Программа, которая откроет такой файл (Office, LibreOffice, iWork, TextEdit, редактор кода…)
 func appFor(_ ext: String) -> URL? {
@@ -164,18 +101,6 @@ func currentFinderFolder() -> URL {
     return path.isEmpty ? desktopURL : URL(fileURLWithPath: path, isDirectory: true)
 }
 
-// Свободное имя: «Имя.ext», «Имя 1.ext», … (ext пустой — для папки)
-func freeURL(in dir: URL, base: String, ext: String) -> URL {
-    let suffix = ext.isEmpty ? "" : ".\(ext)"
-    var url = dir.appendingPathComponent(base + suffix)
-    var n = 1
-    while FileManager.default.fileExists(atPath: url.path) {
-        url = dir.appendingPathComponent("\(base) \(n)\(suffix)")
-        n += 1
-    }
-    return url
-}
-
 // Имя из поля ввода → безопасное имя файла без расширения
 func cleanBase(_ typed: String, ext: String, fallback: String) -> String {
     var s = typed.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -228,40 +153,13 @@ func shortcutText(code: UInt32, mods: UInt32) -> String {
     return s + (keyNames[Int(code)] ?? "#\(code)")
 }
 
+
 // Название формата для подсказок: "" — папка
-func formatTitle(_ ext: String) -> String {
-    ext.isEmpty ? L("folder") : formatGroups().joined().first(where: { $0.ext == ext })?.title ?? ext
-}
+func formatTitle(_ ext: String) -> String { formatTitle(ext, lang: lang) }
 
-// Включённое сочетание macOS из «Клавиатура → Сочетания клавиш» (скриншоты, Spotlight, язык ввода…)
-func systemShortcutTaken(code: UInt32, mods: UInt32) -> Bool {
-    guard let all = UserDefaults(suiteName: "com.apple.symbolichotkeys")?.dictionary(forKey: "AppleSymbolicHotKeys") else { return false }
-    for case let item as [String: Any] in all.values {
-        guard (item["enabled"] as? Bool) == true,
-              let p = (item["value"] as? [String: Any])?["parameters"] as? [Int], p.count == 3 else { continue }
-        if UInt32(p[1]) == code && carbonMods(NSEvent.ModifierFlags(rawValue: UInt(p[2]))) == mods { return true }
-    }
-    return false
-}
-
-// Почему сочетание взять нельзя (nil — можно). owner — чьё сочетание меняем: "main" или расширение формата.
-// Сочетания из меню других программ macOS узнать не даёт — поэтому для форматов требуем ⌃⌥.
 func shortcutConflict(code: UInt32, mods: UInt32, owner: String) -> String? {
-    if owner != "main" && code == hotKeyCode && mods == hotKeyMods { return L("usedMenu") }
-    for (ext, k) in formatKeys where ext != owner && k == [Int(code), Int(mods)] {
-        return String(format: L("usedFor"), formatTitle(ext))
-    }
-    if systemShortcutTaken(code: code, mods: mods) { return L("usedSystem") }
-    return nil
-}
-
-func carbonMods(_ f: NSEvent.ModifierFlags) -> UInt32 {
-    var m: UInt32 = 0
-    if f.contains(.control) { m |= UInt32(controlKey) }
-    if f.contains(.option) { m |= UInt32(optionKey) }
-    if f.contains(.shift) { m |= UInt32(shiftKey) }
-    if f.contains(.command) { m |= UInt32(cmdKey) }
-    return m
+    shortcutConflict(code: code, mods: mods, owner: owner, menu: (hotKeyCode, hotKeyMods), formatKeys: formatKeys,
+                     symbolic: UserDefaults(suiteName: "com.apple.symbolichotkeys")?.dictionary(forKey: "AppleSymbolicHotKeys"), lang: lang)
 }
 
 // MARK: - Приложение

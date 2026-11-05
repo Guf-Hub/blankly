@@ -28,7 +28,7 @@ rm -rf build && mkdir -p "$OUT/Contents/MacOS" "$OUT/Contents/Resources/template
 # 1. Код: две архитектуры → один файл
 for arch in arm64 x86_64; do
   swiftc -O -target "$arch-apple-macos13" -F "$SPARKLE" -framework Sparkle \
-    -Xlinker -rpath -Xlinker @executable_path/../Frameworks -o "build/obj/$NAME-$arch" main.swift
+    -Xlinker -rpath -Xlinker @executable_path/../Frameworks -o "build/obj/$NAME-$arch" main.swift Core.swift
 done
 lipo -create build/obj/$NAME-arm64 build/obj/$NAME-x86_64 -output "$OUT/Contents/MacOS/$NAME"
 mkdir -p "$OUT/Contents/Frameworks"

@@ -124,7 +124,11 @@ zsh release.sh --notes "…" # для автора: собрать, подпис
 
 Первая сборка скачивает [Sparkle](https://github.com/sparkle-project/Sparkle) 2.10.0 в `.vendor/` и сверяет его SHA-256.
 
-`main.swift` — всё приложение, `FinderExtension.swift` — расширение Finder, `icon.swift` рисует иконку, в `Resources/templates` лежат пустые офисные документы.
+`main.swift` — приложение, `Core.swift` — логика без интерфейса (имена, строки, конфликты сочетаний), `FinderExtension.swift` — расширение Finder, `icon.swift` рисует иконку, в `Resources/templates` лежат пустые офисные документы.
+
+### Тесты
+
+`zsh test.sh` собирает `Core.swift` вместе с `Tests/*.swift` обычным `swiftc` (проект Xcode не нужен) и завершается с ошибкой, если что-то не так. Проверяются нумерация имён, конфликты сочетаний, наличие каждой строки на каждом языке и корректность офисных шаблонов (zip). CI запускает тесты на каждом pull request.
 
 ## Поддержать
 
