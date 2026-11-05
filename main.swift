@@ -306,7 +306,9 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
             lastGroup = group
             let icon = f.ext.isEmpty ? NSWorkspace.shared.icon(for: .folder)
                 : UTType(filenameExtension: f.ext).map { NSWorkspace.shared.icon(for: $0) }
-            menu.addItem(item(f.title, ext: f.ext, icon: icon))
+            let it = item(f.title, ext: f.ext, icon: icon)
+            showShortcut(of: f.ext, on: it)
+            menu.addItem(it)
         }
         let mine = userTemplates().filter { isFolder($0) || appFor($0.pathExtension) != nil }
         if !mine.isEmpty {
@@ -328,13 +330,13 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
             menu.addItem(c)
         }
         menu.addItem(.separator())
-        let s = NSMenuItem(title: L("settings") + "   " + shortcutText(code: hotKeyCode, mods: hotKeyMods),
-                           action: #selector(openSettings), keyEquivalent: "")
+        let s = NSMenuItem(title: L("settings"), action: #selector(openSettings), keyEquivalent: "")
         s.target = self
         menu.addItem(s)
         let u = NSMenuItem(title: L("checkNow"), action: #selector(openUpdate), keyEquivalent: "")
         u.target = self
         menu.addItem(u)
+        menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: L("quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: ""))
 
         NSApp.activate(ignoringOtherApps: true)
@@ -355,6 +357,20 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
         it.representedObject = ext
         if let icon = icon?.copy() as? NSImage { icon.size = NSSize(width: 16, height: 16); it.image = icon }
         return it
+    }
+
+    // Сочетание формата справа от пункта (только буквы и цифры: их macOS умеет показать в меню)
+    func showShortcut(of ext: String, on it: NSMenuItem) {
+        guard let k = formatKeys[ext], k.count == 2, let key = keyNames[k[0]], key.count == 1,
+              key.unicodeScalars.allSatisfy({ CharacterSet.alphanumerics.contains($0) }) else { return }
+        let m = UInt32(k[1])
+        var flags: NSEvent.ModifierFlags = []
+        if m & UInt32(controlKey) != 0 { flags.insert(.control) }
+        if m & UInt32(optionKey) != 0 { flags.insert(.option) }
+        if m & UInt32(shiftKey) != 0 { flags.insert(.shift) }
+        if m & UInt32(cmdKey) != 0 { flags.insert(.command) }
+        it.keyEquivalent = key.lowercased()
+        it.keyEquivalentModifierMask = flags
     }
 
     func name(of dir: URL) -> String { isDesktop(dir) ? L("desktop") : dir.lastPathComponent }
@@ -770,7 +786,14 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
             cell.addSubview(b)
             return cell
         case "name":
-            return NSTextField(labelWithString: f.title)
+            let cell = NSView()
+            let t = NSTextField(labelWithString: f.title)
+            t.translatesAutoresizingMaskIntoConstraints = false
+            cell.addSubview(t)
+            NSLayoutConstraint.activate([t.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 2),
+                                         t.trailingAnchor.constraint(lessThanOrEqualTo: cell.trailingAnchor),
+                                         t.centerYAnchor.constraint(equalTo: cell.centerYAnchor)])
+            return cell
         case "key":
             let cell = NSView()
             let b = NSButton(frame: NSRect(x: 0, y: 1, width: 124, height: 28))

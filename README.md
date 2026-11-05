@@ -123,7 +123,7 @@ Requires macOS 13 or later. Apple Silicon and Intel.
 brew uninstall --zap --cask blankly
 ```
 
-Without Homebrew: quit Blankly (menu → **Quit Blankly**), move it from Applications to the Trash, and delete `~/Library/Application Support/Blankly` (your templates) if you don't need it.
+Without Homebrew: quit Blankly (menu → **Quit**), move it from Applications to the Trash, and delete `~/Library/Application Support/Blankly` (your templates) if you don't need it.
 
 ## Build from source
 
