@@ -1,6 +1,7 @@
+<div align="center">
 <table><tr>
 <td width="150" align="center" valign="middle"><img src="docs/icon.png" width="120" alt=""></td>
-<td valign="middle">
+<td valign="middle" align="left">
 
 <h1>Blankly</h1>
 
@@ -18,6 +19,7 @@
 
 </td>
 </tr></table>
+</div>
 
 <p align="center"><img src="docs/demo.gif" width="600" alt="Blankly создаёт текстовый файл и папку на рабочем столе"></p>
 
