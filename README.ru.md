@@ -9,6 +9,8 @@
 
 <p align="center"><a href="README.md">English</a> | <b>Русский</b></p>
 
+<p align="center"><img src="docs/demo.gif" width="600" alt="Blankly создаёт текстовый файл и папку на рабочем столе"></p>
+
 ---
 
 В macOS нет пункта «Создать → Текстовый документ», как в Windows. Blankly добавляет его маленьким фоновым приложением.

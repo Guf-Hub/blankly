@@ -9,6 +9,8 @@ Press <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, pick a format, type
 
 <p align="center"><b>English</b> | <a href="README.ru.md">Русский</a></p>
 
+<p align="center"><img src="docs/demo.gif" width="600" alt="Blankly creating a text file and a folder on the Desktop"></p>
+
 ---
 
 macOS has no "New → Text Document" like Windows does. Blankly adds it as a small background app.
