@@ -1,13 +1,13 @@
-<p align="center"><img src="docs/icon.png" width="128" alt=""></p>
+<img src="docs/icon.png" width="120" align="left" alt="">
 
-<h1 align="center">Blankly</h1>
+<h1>Blankly</h1>
 
-<p align="center">Новый файл или папка там, где вы сейчас, на macOS.<br>
-Нажмите <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, выберите формат, введите имя.</p>
+Новый файл или папка там, где вы сейчас, на macOS.<br>
+Нажмите <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, выберите формат, введите имя.
 
-<p align="center"><a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Скачать для macOS</b></a> &nbsp;·&nbsp; <a href="#поддержать">♥ Поддержать</a></p>
+<a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Скачать для macOS</b></a> &nbsp;·&nbsp; <a href="#поддержать">♥ Поддержать</a> &nbsp;·&nbsp; <a href="README.md">English</a> | <b>Русский</b>
 
-<p align="center"><a href="README.md">English</a> | <b>Русский</b></p>
+<br clear="left">
 
 <p align="center"><img src="docs/demo.gif" width="600" alt="Blankly создаёт текстовый файл и папку на рабочем столе"></p>
 

@@ -1,13 +1,13 @@
-<p align="center"><img src="docs/icon.png" width="128" alt=""></p>
+<img src="docs/icon.png" width="120" align="left" alt="">
 
-<h1 align="center">Blankly</h1>
+<h1>Blankly</h1>
 
-<p align="center">Create a new file or folder right where you are on macOS.<br>
-Press <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, pick a format, type a name.</p>
+Create a new file or folder right where you are on macOS.<br>
+Press <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, pick a format, type a name.
 
-<p align="center"><a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Download for macOS</b></a> &nbsp;·&nbsp; <a href="#support">♥ Support</a></p>
+<a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Download for macOS</b></a> &nbsp;·&nbsp; <a href="#support">♥ Support</a> &nbsp;·&nbsp; <b>English</b> | <a href="README.ru.md">Русский</a>
 
-<p align="center"><b>English</b> | <a href="README.ru.md">Русский</a></p>
+<br clear="left">
 
 <p align="center"><img src="docs/demo.gif" width="600" alt="Blankly creating a text file and a folder on the Desktop"></p>
 
