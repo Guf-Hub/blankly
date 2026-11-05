@@ -1,13 +1,20 @@
-<p align="center"><img src="docs/icon.png" width="128" alt=""></p>
+<img src="docs/icon.png" width="120" align="left" alt="">
 
-<h1 align="center">Blankly</h1>
+<h1>Blankly</h1>
 
-<p align="center">Новый файл или папка там, где вы сейчас, на macOS.<br>
-Нажмите <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, выберите формат, введите имя.</p>
+Новый файл или папка там, где вы сейчас, на macOS.<br>
+Нажмите <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>N</kbd>, выберите формат, введите имя.
 
-<p align="center"><a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Скачать для macOS</b></a> &nbsp;·&nbsp; <a href="#поддержать">♥ Поддержать</a></p>
+<a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Скачать для macOS</b></a> &nbsp;·&nbsp; <a href="#поддержать">♥ Поддержать</a> &nbsp;·&nbsp; <a href="README.md">English</a> | <b>Русский</b>
 
-<p align="center"><a href="README.md">English</a> | <b>Русский</b></p>
+<a href="https://github.com/Guf-Hub/blankly/releases/latest"><img src="https://img.shields.io/github/v/release/Guf-Hub/blankly?label=version" alt="version"></a>
+<a href="https://github.com/Guf-Hub/blankly/releases"><img src="https://img.shields.io/github/downloads/Guf-Hub/blankly/total" alt="downloads"></a>
+<img src="https://img.shields.io/badge/macOS-13%2B-blue?logo=apple" alt="macOS 13+">
+<a href="https://github.com/Guf-Hub/blankly/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/Guf-Hub/blankly/test.yml?branch=main&label=tests" alt="tests"></a>
+<a href="LICENSE"><img src="https://img.shields.io/github/license/Guf-Hub/blankly" alt="MIT"></a>
+<a href="https://github.com/Guf-Hub/blankly/stargazers"><img src="https://img.shields.io/github/stars/Guf-Hub/blankly?style=social" alt="stars"></a>
+
+<br clear="left">
 
 <p align="center"><img src="docs/demo.gif" width="600" alt="Blankly создаёт текстовый файл и папку на рабочем столе"></p>
 
