@@ -44,3 +44,21 @@ func testCreation() {
     eq(clipboardExt(text: "  <HTML lang=en>"), "html", "html")
     eq(clipboardExt(text: "<div>фрагмент</div>"), "txt", "фрагмент — txt")
 }
+
+// Ссылки в папке-шаблоне копируются как ссылки: нет петли и запись не уходит в чужой файл.
+// Меню Finder и меню Blankly строятся из одного списка форматов.
+func testTemplateLinksAndFormatList() {
+    withTempDir { dir in
+        let fm = FileManager.default
+        let tpl = dir.appendingPathComponent("T"), outside = dir.appendingPathComponent("outside.txt")
+        try! fm.createDirectory(at: tpl, withIntermediateDirectories: false)
+        try! "{name}".write(to: outside, atomically: true, encoding: .utf8)
+        try! fm.createSymbolicLink(at: tpl.appendingPathComponent("loop"), withDestinationURL: tpl)
+        try! fm.createSymbolicLink(at: tpl.appendingPathComponent("link.txt"), withDestinationURL: outside)
+        let out = dir.appendingPathComponent("Out")
+        check((try? copyTemplate(from: tpl, to: out, name: "X")) != nil, "шаблон со ссылками копируется")
+        eq((try? fm.destinationOfSymbolicLink(atPath: out.appendingPathComponent("loop").path)) ?? "", tpl.path, "петля осталась ссылкой")
+        eq((try? String(contentsOf: outside, encoding: .utf8)) ?? "", "{name}", "файл за ссылкой не тронут")
+    }
+    eq(FinderSync.formats.map { $0.map(\.ext) }, formatGroups(lang: "en").map { $0.map(\.ext) }, "форматы Finder = форматы меню")
+}

@@ -39,12 +39,7 @@ final class FinderSync: FIFinderSync {
     static func t(_ k: String) -> String { strings[lang]?[k] ?? strings["en"]?[k] ?? k }
 
     // (расширение, название); "folder" — новая папка. Тот же список, что в главном меню Blankly.
-    static var formats: [[(String, String)]] { [
-        [("txt", "\(t("text")) (.txt)"), ("rtf", "RTF (.rtf)"), ("md", "Markdown (.md)"), ("json", "JSON (.json)"),
-         ("csv", "CSV (.csv)"), ("html", "HTML (.html)"), ("py", "Python (.py)")],
-        [("docx", "Word (.docx)"), ("xlsx", "Excel (.xlsx)"), ("pptx", "PowerPoint (.pptx)")],
-        [("odt", "LibreOffice Writer (.odt)"), ("ods", "LibreOffice Calc (.ods)"), ("odp", "LibreOffice Impress (.odp)")],
-    ] }
+    static var formats: [[(ext: String, title: String)]] { FormatList.groups(text: t("text")) }
     static let allExts = formats.flatMap { $0.map { $0.0 } }
 
     override init() {
@@ -97,7 +92,9 @@ final class FinderSync: FIFinderSync {
                                symbol: ext.isEmpty ? "folder" : nil))
         }
         let pb = NSPasteboard.general
-        if pb.string(forType: .string) != nil || pb.data(forType: .png) != nil || pb.data(forType: .tiff) != nil {
+        // то же условие, что у Blankly: непустой текст или картинка (данные картинки не читаем — только тип)
+        if pb.string(forType: .string).map({ !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
+            ?? (pb.availableType(from: [.png, .tiff]) != nil) {
             menu.addItem(.separator())
             menu.addItem(entry(Self.t("clipboard"), tag: -2, symbol: "doc.on.clipboard"))
         }
