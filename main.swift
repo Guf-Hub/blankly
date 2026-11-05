@@ -27,6 +27,11 @@ var hotKeyMods: UInt32 {
     get { defaults.object(forKey: "mods") as? UInt32 ?? UInt32(controlKey | optionKey) }
     set { defaults.set(newValue, forKey: "mods") }
 }
+// Быстрые клавиши форматов: расширение ("" — папка) → [код клавиши, модификаторы]
+var formatKeys: [String: [Int]] {
+    get { defaults.dictionary(forKey: "formatKeys") as? [String: [Int]] ?? [:] }
+    set { defaults.set(newValue, forKey: "formatKeys") }
+}
 
 let strings: [String: (ru: String, en: String)] = [
     "base": ("Новый файл", "New File"),
@@ -52,6 +57,16 @@ let strings: [String: (ru: String, en: String)] = [
     "needMod": ("Нужна клавиша ⌘, ⌃ или ⌥", "Use ⌘, ⌃ or ⌥"),
     "busy": ("Сочетание занято другой программой", "Shortcut is used by another app"),
     "language": ("Язык:", "Language:"),
+    "fmtKeys": ("Клавиши форматов:", "Format shortcuts:"),
+    "fmtSetup": ("Настроить…", "Set Up…"),
+    "fmtTitle": ("Blankly — клавиши форматов", "Blankly — Format Shortcuts"),
+    "fmtHint": ("Нажмите на поле и сочетание с ⌃⌥. Файл создаётся сразу,\nбез меню: остаётся только ввести имя.",
+                "Click a field and press a shortcut with ⌃⌥. The file is created\nright away, no menu: just type a name."),
+    "fmtClear": ("Убрать сочетание", "Remove shortcut"),
+    "needCtrlOpt": ("Нужны ⌃ и ⌥ вместе", "Use ⌃ and ⌥ together"),
+    "usedMenu": ("Уже занято: меню Blankly", "Already used: Blankly menu"),
+    "usedFor": ("Уже занято: %@", "Already used: %@"),
+    "usedSystem": ("Занято в macOS: Настройки → Клавиатура", "Used by macOS: Settings → Keyboard"),
     "login": ("Запускать при входе в систему", "Open at login"),
     "loginFail": ("Не удалось изменить автозапуск", "Couldn’t change login item"),
     "myTemplates": ("Мои шаблоны", "My Templates"),
@@ -219,6 +234,33 @@ func shortcutText(code: UInt32, mods: UInt32) -> String {
     return s + (keyNames[Int(code)] ?? "#\(code)")
 }
 
+// Название формата для подсказок: "" — папка
+func formatTitle(_ ext: String) -> String {
+    ext.isEmpty ? L("folder") : formatGroups().joined().first(where: { $0.ext == ext })?.title ?? ext
+}
+
+// Включённое сочетание macOS из «Клавиатура → Сочетания клавиш» (скриншоты, Spotlight, язык ввода…)
+func systemShortcutTaken(code: UInt32, mods: UInt32) -> Bool {
+    guard let all = UserDefaults(suiteName: "com.apple.symbolichotkeys")?.dictionary(forKey: "AppleSymbolicHotKeys") else { return false }
+    for case let item as [String: Any] in all.values {
+        guard (item["enabled"] as? Bool) == true,
+              let p = (item["value"] as? [String: Any])?["parameters"] as? [Int], p.count == 3 else { continue }
+        if UInt32(p[1]) == code && carbonMods(NSEvent.ModifierFlags(rawValue: UInt(p[2]))) == mods { return true }
+    }
+    return false
+}
+
+// Почему сочетание взять нельзя (nil — можно). owner — чьё сочетание меняем: "main" или расширение формата.
+// Сочетания из меню других программ macOS узнать не даёт — поэтому для форматов требуем ⌃⌥.
+func shortcutConflict(code: UInt32, mods: UInt32, owner: String) -> String? {
+    if owner != "main" && code == hotKeyCode && mods == hotKeyMods { return L("usedMenu") }
+    for (ext, k) in formatKeys where ext != owner && k == [Int(code), Int(mods)] {
+        return String(format: L("usedFor"), formatTitle(ext))
+    }
+    if systemShortcutTaken(code: code, mods: mods) { return L("usedSystem") }
+    return nil
+}
+
 func carbonMods(_ f: NSEvent.ModifierFlags) -> UInt32 {
     var m: UInt32 = 0
     if f.contains(.control) { m |= UInt32(controlKey) }
@@ -234,6 +276,8 @@ final class App: NSObject, NSApplicationDelegate {
     var targetDir = desktopURL
     var clickPoint = NSPoint.zero // где был курсор при вызове меню — туда ставим файл на рабочем столе
     var hotKeyRef: EventHotKeyRef?
+    var formatRefs: [EventHotKeyRef] = []
+    var formatIDs: [UInt32: String] = [:] // id сочетания → расширение
     var settings: SettingsWindow?
     var launchedAtLogin = false
     var launchedByLink = false
@@ -254,6 +298,7 @@ final class App: NSObject, NSApplicationDelegate {
             openSettings(); settings?.note.stringValue = L("busy")
             return
         }
+        _ = registerFormatKeys()
         startUpdateChecks()
         if !launchedAtLogin && !launchedByLink && !CommandLine.arguments.contains("--background") { showMenu() }
     }
@@ -310,15 +355,25 @@ final class App: NSObject, NSApplicationDelegate {
         }
     }
 
+    func hereDir() -> URL {
+        let inFinder = NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.finder"
+        return inFinder ? currentFinderFolder() : desktopURL
+    }
+
+    // Быстрая клавиша формата: без меню — сразу окно имени
+    func quickCreate(_ ext: String) {
+        targetDir = hereDir()
+        clickPoint = NSEvent.mouseLocation
+        NSApp.activate(ignoringOtherApps: true)
+        let item = NSMenuItem()
+        item.representedObject = ext
+        pick(item)
+    }
+
     func showMenu(in dir: URL? = nil) {
         // Где пользователь, там и создаём: в Finder — открытая папка (или стол, если кликнул по столу),
         // в любой другой программе или из Дока — рабочий стол.
-        if let dir {
-            targetDir = dir
-        } else {
-            let inFinder = NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.finder"
-            targetDir = inFinder ? currentFinderFolder() : desktopURL
-        }
+        targetDir = dir ?? hereDir()
 
         let menu = NSMenu()
         if let u = update {
@@ -466,9 +521,14 @@ final class App: NSObject, NSApplicationDelegate {
 
     func installHotKeyHandler() {
         var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
-        InstallEventHandler(GetApplicationEventTarget(), { _, _, ctx in
+        InstallEventHandler(GetApplicationEventTarget(), { _, event, ctx in
             let app = Unmanaged<App>.fromOpaque(ctx!).takeUnretainedValue()
-            DispatchQueue.main.async { app.showMenu() }
+            var hk = EventHotKeyID()
+            GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID),
+                              nil, MemoryLayout<EventHotKeyID>.size, nil, &hk)
+            DispatchQueue.main.async {
+                if let ext = app.formatIDs[hk.id] { app.quickCreate(ext) } else { app.showMenu() }
+            }
             return noErr
         }, 1, &spec, Unmanaged.passUnretained(self).toOpaque(), nil)
     }
@@ -478,6 +538,29 @@ final class App: NSObject, NSApplicationDelegate {
         if let r = hotKeyRef { UnregisterEventHotKey(r); hotKeyRef = nil }
         let id = EventHotKeyID(signature: OSType(0x424C4E4B), id: 1) // 'BLNK'
         return RegisterEventHotKey(code, mods, id, GetApplicationEventTarget(), 0, &hotKeyRef) == noErr
+    }
+
+    func unregisterFormatKeys() {
+        formatRefs.forEach { UnregisterEventHotKey($0) }
+        formatRefs = []; formatIDs = [:]
+    }
+
+    // Регистрирует все клавиши форматов; возвращает те, что заняты другой программой
+    func registerFormatKeys() -> [String] {
+        unregisterFormatKeys()
+        var failed: [String] = []
+        for (i, ext) in formatKeys.keys.sorted().enumerated() {
+            guard let k = formatKeys[ext], k.count == 2 else { continue }
+            let id = UInt32(100 + i)
+            var ref: EventHotKeyRef?
+            if RegisterEventHotKey(UInt32(k[0]), UInt32(k[1]), EventHotKeyID(signature: OSType(0x424C4E4B), id: id),
+                                   GetApplicationEventTarget(), 0, &ref) == noErr, let ref {
+                formatRefs.append(ref); formatIDs[id] = ext
+            } else {
+                failed.append(ext)
+            }
+        }
+        return failed
     }
 }
 
@@ -498,23 +581,38 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
     let version = NSTextField(labelWithString: "")
     let templatesButton = NSButton()
     let templatesHint = NSTextField(labelWithString: "")
+    let fmtLabel = NSTextField(labelWithString: "")
+    let fmtButton = NSButton()
     var monitor: Any?
+    var recording: (owner: String, button: NSButton, note: NSTextField)?
+    // окно «Клавиши форматов»
+    var fmtWindow: NSWindow?
+    let fmtNote = NSTextField(labelWithString: "")
+    let fmtHint = NSTextField(labelWithString: "")
+    var fmtButtons: [String: NSButton] = [:]
 
     init(app: App) {
         self.app = app
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 380, height: 350),
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 380, height: 394),
                           styleMask: [.titled, .closable], backing: .buffered, defer: false)
         super.init()
         window.isReleasedWhenClosed = false
         window.delegate = self
         let v = window.contentView!
 
-        hotLabel.frame = NSRect(x: 20, y: 302, width: 150, height: 20)
-        hotButton.frame = NSRect(x: 175, y: 295, width: 185, height: 32)
+        hotLabel.frame = NSRect(x: 20, y: 346, width: 150, height: 20)
+        hotButton.frame = NSRect(x: 175, y: 339, width: 185, height: 32)
         hotButton.bezelStyle = .rounded
-        hotButton.target = self; hotButton.action = #selector(record)
-        note.frame = NSRect(x: 175, y: 278, width: 200, height: 16)
+        hotButton.identifier = NSUserInterfaceItemIdentifier("main")
+        hotButton.target = self; hotButton.action = #selector(record(_:))
+        note.frame = NSRect(x: 20, y: 322, width: 340, height: 16)
+        note.alignment = .right
         note.font = .systemFont(ofSize: 11); note.textColor = .systemRed
+
+        fmtLabel.frame = NSRect(x: 20, y: 290, width: 150, height: 20)
+        fmtButton.frame = NSRect(x: 175, y: 283, width: 185, height: 32)
+        fmtButton.bezelStyle = .rounded
+        fmtButton.target = self; fmtButton.action = #selector(showFormatKeys)
 
         langLabel.frame = NSRect(x: 20, y: 246, width: 150, height: 20)
         langPopup.frame = NSRect(x: 175, y: 240, width: 185, height: 30)
@@ -541,13 +639,15 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         templatesHint.frame = NSRect(x: 20, y: 46, width: 340, height: 34)
         templatesHint.font = .systemFont(ofSize: 11); templatesHint.textColor = .secondaryLabelColor
 
-        [hotLabel, hotButton, note, langLabel, langPopup, loginBox, updatesBox, finderLabel, finderButton, templatesButton, templatesHint, version]
+        [hotLabel, hotButton, note, fmtLabel, fmtButton, langLabel, langPopup, loginBox, updatesBox, finderLabel, finderButton, templatesButton, templatesHint, version]
             .forEach { v.addSubview($0) }
     }
 
     func refresh() {
         window.title = L("winTitle")
         hotLabel.stringValue = L("hotkey")
+        fmtLabel.stringValue = L("fmtKeys")
+        fmtButton.title = L("fmtSetup")
         langLabel.stringValue = L("language")
         loginBox.title = L("login")
         updatesBox.title = L("checkUpdates")
@@ -571,16 +671,26 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         window.makeKeyAndOrderFront(nil)
     }
 
-    @objc func record() {
-        stopRecording()
-        hotButton.title = L("press")
-        note.stringValue = ""
-        if let r = app.hotKeyRef { UnregisterEventHotKey(r); app.hotKeyRef = nil } // чтобы старое не сработало
+    // Запись сочетания: главное (owner "main") или для формата (owner — расширение)
+    @objc func record(_ sender: NSButton) {
+        if recording != nil { finish(nil) }
+        let owner = sender.identifier?.rawValue ?? "main"
+        let n = owner == "main" ? note : fmtNote
+        recording = (owner, sender, n)
+        sender.title = L("press")
+        n.stringValue = ""
+        // пока записываем, старые сочетания не должны срабатывать
+        if let r = app.hotKeyRef { UnregisterEventHotKey(r); app.hotKeyRef = nil }
+        app.unregisterFormatKeys()
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] e in
             guard let self else { return e }
             if e.keyCode == UInt16(kVK_Escape) { self.finish(nil); return nil }
             let mods = carbonMods(e.modifierFlags)
-            if mods & UInt32(cmdKey | controlKey | optionKey) == 0 { self.note.stringValue = L("needMod"); return nil }
+            if owner == "main" {
+                if mods & UInt32(cmdKey | controlKey | optionKey) == 0 { n.stringValue = L("needMod"); return nil }
+            } else if mods & UInt32(controlKey | optionKey) != UInt32(controlKey | optionKey) {
+                n.stringValue = L("needCtrlOpt"); return nil
+            }
             self.finish((UInt32(e.keyCode), mods))
             return nil
         }
@@ -588,21 +698,91 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
 
     func finish(_ combo: (UInt32, UInt32)?) {
         stopRecording()
+        guard let r = recording else { return }
+        recording = nil
         if let (code, mods) = combo {
-            if app.registerHotKey(code: code, mods: mods) {
-                hotKeyCode = code; hotKeyMods = mods
+            if let why = shortcutConflict(code: code, mods: mods, owner: r.owner) {
+                r.note.stringValue = why
+            } else if r.owner == "main" {
+                if app.registerHotKey(code: code, mods: mods) { hotKeyCode = code; hotKeyMods = mods }
+                else { r.note.stringValue = L("busy") }
             } else {
-                note.stringValue = L("busy")
-                _ = app.registerHotKey(code: hotKeyCode, mods: hotKeyMods)
+                formatKeys[r.owner] = [Int(code), Int(mods)]
+                if app.registerFormatKeys().contains(r.owner) {
+                    formatKeys[r.owner] = nil
+                    r.note.stringValue = L("busy")
+                }
             }
-        } else {
-            _ = app.registerHotKey(code: hotKeyCode, mods: hotKeyMods)
         }
+        if app.hotKeyRef == nil { _ = app.registerHotKey(code: hotKeyCode, mods: hotKeyMods) }
+        _ = app.registerFormatKeys()
         hotButton.title = shortcutText(code: hotKeyCode, mods: hotKeyMods)
+        refreshFormatKeys()
     }
 
     func stopRecording() {
         if let m = monitor { NSEvent.removeMonitor(m); monitor = nil }
+    }
+
+    // MARK: окно «Клавиши форматов»: папка и форматы, которые есть чем открыть
+
+    @objc func showFormatKeys() {
+        if fmtWindow == nil { buildFormatWindow() }
+        fmtWindow?.title = L("fmtTitle")
+        fmtHint.stringValue = L("fmtHint")
+        fmtNote.stringValue = ""
+        refreshFormatKeys()
+        fmtWindow?.center()
+        fmtWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    func buildFormatWindow() {
+        let rows = [("", L("folder"))] + formatGroups().joined().filter { appFor($0.ext) != nil }.map { ($0.ext, $0.title) }
+        let h = CGFloat(rows.count * 32 + 96)
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: h), styleMask: [.titled, .closable],
+                         backing: .buffered, defer: false)
+        w.isReleasedWhenClosed = false
+        w.delegate = self
+        let v = w.contentView!
+        fmtHint.frame = NSRect(x: 20, y: h - 50, width: 360, height: 34)
+        fmtHint.font = .systemFont(ofSize: 11); fmtHint.textColor = .secondaryLabelColor
+        v.addSubview(fmtHint)
+        for (i, (ext, title)) in rows.enumerated() {
+            let y = h - 92 - CGFloat(i * 32)
+            let label = NSTextField(labelWithString: title)
+            label.frame = NSRect(x: 20, y: y + 6, width: 200, height: 20)
+            let b = NSButton(frame: NSRect(x: 220, y: y, width: 130, height: 32))
+            b.bezelStyle = .rounded
+            b.identifier = NSUserInterfaceItemIdentifier(ext)
+            b.target = self; b.action = #selector(record(_:))
+            let x = NSButton(frame: NSRect(x: 350, y: y + 4, width: 30, height: 24))
+            x.bezelStyle = .inline; x.isBordered = false
+            x.image = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: L("fmtClear"))
+            x.toolTip = L("fmtClear")
+            x.identifier = NSUserInterfaceItemIdentifier(ext)
+            x.target = self; x.action = #selector(clearFormatKey(_:))
+            [label, b, x].forEach { v.addSubview($0) }
+            fmtButtons[ext] = b
+        }
+        fmtNote.frame = NSRect(x: 20, y: 16, width: 360, height: 16)
+        fmtNote.font = .systemFont(ofSize: 11); fmtNote.textColor = .systemRed
+        v.addSubview(fmtNote)
+        fmtWindow = w
+    }
+
+    func refreshFormatKeys() {
+        let keys = formatKeys
+        for (ext, b) in fmtButtons {
+            if let k = keys[ext], k.count == 2 { b.title = shortcutText(code: UInt32(k[0]), mods: UInt32(k[1])) }
+            else { b.title = "—" }
+        }
+    }
+
+    @objc func clearFormatKey(_ sender: NSButton) {
+        if recording != nil { finish(nil) }
+        formatKeys[sender.identifier?.rawValue ?? ""] = nil
+        _ = app.registerFormatKeys()
+        refreshFormatKeys()
     }
 
     @objc func openTemplates() {
@@ -612,6 +792,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
 
     @objc func changeLang() {
         lang = langPopup.indexOfSelectedItem == 1 ? "en" : "ru"
+        fmtWindow?.close(); fmtWindow = nil; fmtButtons = [:] // пересоберётся на новом языке
         refresh()
     }
 
