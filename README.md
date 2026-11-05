@@ -115,6 +115,16 @@ zsh build.sh --no-install # build only: build/Blankly.app, .zip and .dmg
 
 `main.swift` is the whole app, `FinderExtension.swift` is the Finder extension, `icon.swift` draws the icon, `Resources/templates` holds the empty Office documents.
 
+## Support
+
+Blankly is free. If it saves you time and you'd like to say thanks — send **USDT on the TON network** to:
+
+```
+UQBQ3pthdJ3qGhAgNbeo95fsqeauO1R65JFuCPlVdbvvJEvF
+```
+
+Only USDT and only on TON. Other coins or networks sent there will be lost.
+
 ## Author
 
 Made by [Guf-Hub](https://github.com/Guf-Hub). Ideas and bug reports — [Issues](../../issues).
