@@ -29,6 +29,10 @@ SPARKLE=.vendor/Sparkle-$(sed -n 's/^SPARKLE_VER=//p' build.sh)
 if [[ -n "$FROM_CI" ]]; then
   zsh build.sh --sparkle-only          # только инструменты Sparkle (sign_update)
   rm -rf build && mkdir -p build
+  # прогон (в том числе из форка) должен быть собран из того же коммита, что и main здесь
+  RUN_SHA=$(gh run view "$FROM_CI" ${CI_REPO:+-R "$CI_REPO"} --json headSha -q .headSha)
+  MAIN_SHA=$(git rev-parse origin/main)
+  [[ "$RUN_SHA" == "$MAIN_SHA" ]] || { echo "Прогон $FROM_CI собран из $RUN_SHA, а origin/main — $MAIN_SHA. Сначала синхронизируйте форк с main." >&2; exit 1 }
   gh run download "$FROM_CI" ${CI_REPO:+-R "$CI_REPO"} -n Blankly -D build
   [[ -f build/Blankly.zip ]] || { echo "В прогоне $FROM_CI нет Blankly.zip" >&2; exit 1 }
   # версию берём из самого приложения в архиве

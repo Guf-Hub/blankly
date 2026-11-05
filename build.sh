@@ -5,7 +5,7 @@
 set -e
 cd "${0:A:h}"
 NAME=Blankly
-VERSION=${BLANKLY_VERSION:-1.3.1}
+VERSION=${BLANKLY_VERSION:-1.4}
 # Откуда приложение берёт обновления (Sparkle). Для проверки обновления можно подменить.
 FEED=${BLANKLY_FEED:-https://github.com/Guf-Hub/blankly/releases/latest/download/appcast.xml}
 SPARKLE_PUBLIC_KEY="BYHCPAXCvZj084k8mOtD13xFD1PukaW4Qtq/MUI0bKU="
