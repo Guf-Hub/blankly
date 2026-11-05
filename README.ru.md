@@ -151,7 +151,7 @@ zsh release.sh --notes "…" --notes-ru "…" # для автора: собра�
 
 ## Участие в разработке
 
-Pull request'ы приветствуются — см. [CONTRIBUTING.md](CONTRIBUTING.md) (на английском). Ошибки — в [Issues](../../issues), идеи и вопросы — в [Discussions](../../discussions).
+Pull request'ы приветствуются — см. [CONTRIBUTING.md](CONTRIBUTING.md) (на английском). Ошибки — в [Issues](../../issues/new/choose), идеи и вопросы — в [Discussions](../../discussions).
 
 ## Поддержать
 
@@ -176,7 +176,7 @@ UQBQ3pthdJ3qGhAgNbeo95fsqeauO1R65JFuCPlVdbvvJEvF
 
 ## Автор
 
-[Guf-Hub](https://github.com/Guf-Hub). Идеи и ошибки — в [Issues](../../issues).
+[Guf-Hub](https://github.com/Guf-Hub). Идеи и ошибки — в [Issues](../../issues/new/choose).
 
 ## Лицензия
 

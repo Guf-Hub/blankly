@@ -151,7 +151,7 @@ The first build downloads [Sparkle](https://github.com/sparkle-project/Sparkle) 
 
 ## Contributing
 
-Pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Bugs go to [Issues](../../issues), ideas and questions to [Discussions](../../discussions).
+Pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Bugs go to [Issues](../../issues/new/choose), ideas and questions to [Discussions](../../discussions).
 
 ## Support
 
@@ -176,7 +176,7 @@ Scan the QR code in your wallet app or copy the address.
 
 ## Author
 
-Made by [Guf-Hub](https://github.com/Guf-Hub). Ideas and bug reports — [Issues](../../issues).
+Made by [Guf-Hub](https://github.com/Guf-Hub). Ideas and bug reports — [Issues](../../issues/new/choose).
 
 ## License
 
