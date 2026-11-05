@@ -66,6 +66,8 @@ func appFor(_ ext: String) -> URL? {
 
 // Встроенные файлы пустые; у html — стандартная заготовка HTML5.
 func starterText(_ ext: String) -> String {
+    // пустой RTF без заголовка TextEdit не откроет как документ с оформлением
+    if ext == "rtf" { return "{\\rtf1\\ansi\\ansicpg1252\\cocoartf2\n{\\fonttbl\\f0\\fswiss Helvetica;}\n\\f0\\fs24\n}\n" }
     guard ext == "html" else { return "" }
     return """
     <!DOCTYPE html>

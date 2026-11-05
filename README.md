@@ -39,7 +39,7 @@ Then choose **New Folder** or a file format, type a name and press Enter. The na
 - In any other app — onto the Desktop, right where the cursor was.
 - If the name is taken, Blankly adds a number: `Notes 1.txt`.
 
-**Formats:** `txt`, `md`, `json`, `csv`, `html`, `py`, `docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`.
+**Formats:** `txt`, `rtf`, `md`, `json`, `csv`, `html`, `py`, `docx`, `xlsx`, `pptx`, `odt`, `ods`, `odp`.
 
 - Only formats your Mac can open are shown. No Word or Pages — no `.docx` in the menu.
 - Hide formats you never use and drag the rest into your own order in **Settings → Formats**. The menu, the Finder right-click and the toolbar button all follow it. A hidden format keeps its shortcut.
@@ -47,6 +47,8 @@ Then choose **New Folder** or a file format, type a name and press Enter. The na
 - Office files are real empty documents, not zero-byte files, so Word, Excel and LibreOffice open them without complaints.
 
 **Your own templates.** Settings → **Templates Folder…** opens a folder. Any file you put there shows up in the menu under *My Templates*, and new files are copies of it — a `.py` with your boilerplate, a `.yaml` config, anything. A **folder** in there works too: it shows up in the menu and is copied whole, with everything inside. In the Finder menu they are under **More…**.
+
+This is also how to add formats only their own app can create — Pages, Numbers, Keynote, Photoshop, AutoCAD, a video editor project: create an empty document in that app and save it into the Templates folder.
 
 **Variables in templates.** In a template's file name and inside text templates (UTF-8), Blankly replaces `{date}` with `2026-11-05`, `{time}` with `14-30` and `{name}` with the name you typed. For a template folder this applies to the names of files inside it as well. Binary files (such as `.docx`) are copied untouched. The name suggested in the name dialog is the template's own name with `{date}` and `{time}` filled in.
 
