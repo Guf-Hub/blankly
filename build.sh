@@ -20,6 +20,7 @@ if [[ ! -d "$SPARKLE/Sparkle.framework" ]]; then
   echo "$SPARKLE_SHA  $SPARKLE.tar.xz" | shasum -a 256 -c --quiet
   tar -xJf "$SPARKLE.tar.xz" -C "$SPARKLE"
 fi
+[[ "$1" == "--sparkle-only" ]] && exit 0   # release.sh --from-ci: нужны только инструменты Sparkle
 APP="/Applications/$NAME.app"
 OUT="build/$NAME.app"
 
@@ -108,9 +109,8 @@ cat > "$OUT/Contents/Info.plist" <<EOF
 </dict>
 </plist>
 EOF
-# подпись: сначала расширение (с песочницей), потом приложение
-codesign --force --sign - --entitlements build/obj/ext.entitlements "$EXT"
-codesign --force --sign - "$OUT"
+# подпись (ad-hoc, а с SIGN_IDENTITY — Developer ID): см. sign.sh
+zsh sign.sh sign "$OUT" build/obj/ext.entitlements
 
 # 4. Для раздачи: zip и DMG (окно «перетащите в Программы»)
 ditto -c -k --keepParent "$OUT" "build/$NAME.zip"
