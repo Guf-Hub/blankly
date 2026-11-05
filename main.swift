@@ -13,7 +13,7 @@ import Sparkle
 
 let defaults = UserDefaults.standard
 var lang: String {
-    get { defaults.string(forKey: "lang") ?? (Locale.preferredLanguages.first?.hasPrefix("ru") == true ? "ru" : "en") }
+    get { resolveLang(saved: defaults.string(forKey: "lang"), preferred: Locale.preferredLanguages) }
     set { defaults.set(newValue, forKey: "lang") }
 }
 var checkUpdates: Bool {
@@ -583,7 +583,10 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
 
         langLabel.frame = NSRect(x: 20, y: 246, width: 150, height: 20)
         langPopup.frame = NSRect(x: 175, y: 240, width: 185, height: 30)
-        langPopup.addItems(withTitles: ["Русский", "English"])
+        for l in supportedLangs {
+            langPopup.addItem(withTitle: l.name)
+            langPopup.lastItem?.representedObject = l.code
+        }
         langPopup.target = self; langPopup.action = #selector(changeLang)
 
         loginBox.frame = NSRect(x: 20, y: 202, width: 340, height: 20)
@@ -632,7 +635,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         templatesButton.title = L("templatesBtn")
         templatesHint.stringValue = L("templatesHint")
         hotButton.title = shortcutText(code: hotKeyCode, mods: hotKeyMods)
-        langPopup.selectItem(at: lang == "en" ? 1 : 0)
+        langPopup.selectItem(at: supportedLangs.firstIndex { $0.code == lang } ?? 0)
         loginBox.state = SMAppService.mainApp.status == .enabled ? .on : .off
     }
 
@@ -713,17 +716,17 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
     func buildFormatWindow() {
         fmtRows = menuFormats().all
         let h = CGFloat(min(fmtRows.count, 14) * 30 + 28 + 100)
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 660, height: h), styleMask: [.titled, .closable],
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 710, height: h), styleMask: [.titled, .closable],
                          backing: .buffered, defer: false)
         w.isReleasedWhenClosed = false
         w.delegate = self
         let v = w.contentView!
-        fmtHint.frame = NSRect(x: 20, y: h - 50, width: 620, height: 34)
+        fmtHint.frame = NSRect(x: 20, y: h - 50, width: 670, height: 34)
         fmtHint.font = .systemFont(ofSize: 11); fmtHint.textColor = .secondaryLabelColor
         v.addSubview(fmtHint)
 
         let table = NSTableView()
-        for (id, title, width) in [("show", L("colShow"), 80), ("name", L("base"), 180), ("key", L("colKey"), 160), ("open", L("colOpen"), 180)] {
+        for (id, title, width) in [("show", L("colShow"), 80), ("name", L("base"), 230), ("key", L("colKey"), 160), ("open", L("colOpen"), 180)] {
             let c = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(id))
             c.title = title; c.width = CGFloat(width); c.resizingMask = []
             table.addTableColumn(c)
@@ -737,13 +740,13 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         table.registerForDraggedTypes([fmtDragType])
         table.setDraggingSourceOperationMask(.move, forLocal: true)
         table.draggingDestinationFeedbackStyle = .gap
-        let scroll = NSScrollView(frame: NSRect(x: 20, y: 44, width: 620, height: h - 100))
+        let scroll = NSScrollView(frame: NSRect(x: 20, y: 44, width: 670, height: h - 100))
         scroll.documentView = table
         scroll.hasVerticalScroller = true
         scroll.borderType = .bezelBorder
         v.addSubview(scroll)
 
-        fmtNote.frame = NSRect(x: 20, y: 16, width: 620, height: 16)
+        fmtNote.frame = NSRect(x: 20, y: 16, width: 670, height: 16)
         fmtNote.font = .systemFont(ofSize: 11); fmtNote.textColor = .systemRed
         v.addSubview(fmtNote)
         fmtTable = table
@@ -906,7 +909,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
     }
 
     @objc func changeLang() {
-        lang = langPopup.indexOfSelectedItem == 1 ? "en" : "ru"
+        lang = langPopup.selectedItem?.representedObject as? String ?? "en"
         applyLanguage()
         fmtWindow?.close(); fmtWindow = nil; fmtTable = nil; fmtButtons = [:] // пересоберётся на новом языке
         refresh()

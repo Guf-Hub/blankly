@@ -29,7 +29,7 @@ rm -rf build && mkdir -p "$OUT/Contents/MacOS" "$OUT/Contents/Resources/template
 # 1. Код: две архитектуры → один файл
 for arch in arm64 x86_64; do
   swiftc -O -target "$arch-apple-macos13" -F "$SPARKLE" -framework Sparkle \
-    -Xlinker -rpath -Xlinker @executable_path/../Frameworks -o "build/obj/$NAME-$arch" main.swift Core.swift FormatOrder.swift
+    -Xlinker -rpath -Xlinker @executable_path/../Frameworks -o "build/obj/$NAME-$arch" main.swift Core.swift FormatOrder.swift Languages.swift
 done
 lipo -create build/obj/$NAME-arm64 build/obj/$NAME-x86_64 -output "$OUT/Contents/MacOS/$NAME"
 mkdir -p "$OUT/Contents/Frameworks"
@@ -40,7 +40,7 @@ EXT="$OUT/Contents/PlugIns/BlanklyFinder.appex"
 mkdir -p "$EXT/Contents/MacOS"
 for arch in arm64 x86_64; do
   swiftc -O -target "$arch-apple-macos13" -application-extension -module-name BlanklyFinder \
-    -Xlinker -e -Xlinker _NSExtensionMain -o "build/obj/ext-$arch" FinderExtension.swift FormatOrder.swift
+    -Xlinker -e -Xlinker _NSExtensionMain -o "build/obj/ext-$arch" FinderExtension.swift FormatOrder.swift Languages.swift
 done
 lipo -create build/obj/ext-arm64 build/obj/ext-x86_64 -output "$EXT/Contents/MacOS/BlanklyFinder"
 cat > "$EXT/Contents/Info.plist" <<EOF
@@ -91,7 +91,7 @@ cat > "$OUT/Contents/Info.plist" <<EOF
 	<key>CFBundleExecutable</key><string>$NAME</string>
 	<key>CFBundleIconFile</key><string>AppIcon</string>
 	<key>CFBundleDevelopmentRegion</key><string>en</string>
-	<key>CFBundleLocalizations</key><array><string>en</string><string>ru</string></array>
+	<key>CFBundleLocalizations</key><array><string>en</string><string>ru</string><string>de</string><string>fr</string><string>es</string><string>zh-Hans</string><string>ja</string></array>
 	<key>CFBundlePackageType</key><string>APPL</string>
 	<key>CFBundleShortVersionString</key><string>$VERSION</string>
 	<key>CFBundleVersion</key><string>$VERSION</string>
