@@ -119,8 +119,12 @@ brew uninstall --zap --cask blankly
 ```bash
 zsh build.sh              # собрать и установить в /Applications
 zsh build.sh --no-install # только собрать: build/Blankly.app, .zip и .dmg
-zsh release.sh --notes "…" # для автора: собрать, подписать обновление, выложить релиз на GitHub
+zsh release.sh --notes "…" --notes-ru "…" # для автора: собрать, подписать обновление, выложить релиз на GitHub
 ```
+
+**Выпуск релиза (для автора).** `--notes` (Markdown) попадает и в релиз на GitHub, и в окно обновления Blankly; `--notes-ru` добавляет русский текст — его увидят на Mac с русским языком. Остальные аргументы уходят в `gh release create` (например, `--prerelease`).
+
+Локально сборка подписывается ad-hoc. Сборку с подписью Developer ID и нотаризацией Apple делает GitHub Actions: запустите workflow **release-build** (Actions → release-build → Run workflow), затем опубликуйте результат командой `zsh release.sh --from-ci <номер-прогона> --notes "…"`. Архив обновления по-прежнему подписывается ключом Sparkle на Mac автора. Если секретов подписи нет, workflow просто соберёт ad-hoc-версию. Подробности — в [CONTRIBUTING.md](CONTRIBUTING.md#code-signing-maintainers) (на английском).
 
 Первая сборка скачивает [Sparkle](https://github.com/sparkle-project/Sparkle) 2.10.0 в `.vendor/` и сверяет его SHA-256.
 
@@ -129,6 +133,10 @@ zsh release.sh --notes "…" # для автора: собрать, подпис
 ### Тесты
 
 `zsh test.sh` собирает `Core.swift` вместе с `Tests/*.swift` обычным `swiftc` (проект Xcode не нужен) и завершается с ошибкой, если что-то не так. Проверяются нумерация имён, конфликты сочетаний, наличие каждой строки на каждом языке и корректность офисных шаблонов (zip). CI запускает тесты на каждом pull request.
+
+## Участие в разработке
+
+Pull request'ы приветствуются — см. [CONTRIBUTING.md](CONTRIBUTING.md) (на английском). Ошибки — в [Issues](../../issues), идеи и вопросы — в [Discussions](../../discussions).
 
 ## Поддержать
 

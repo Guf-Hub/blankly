@@ -119,8 +119,12 @@ Needs Xcode or Command Line Tools.
 ```bash
 zsh build.sh              # build and install to /Applications
 zsh build.sh --no-install # build only: build/Blankly.app, .zip and .dmg
-zsh release.sh --notes "…" # maintainer: build, sign the update, publish a GitHub release
+zsh release.sh --notes "…" --notes-ru "…" # maintainer: build, sign the update, publish a GitHub release
 ```
+
+**Releasing (maintainer).** `--notes` (Markdown) goes both into the GitHub release and into the update window of Blankly; `--notes-ru` adds the Russian text, shown on a Russian Mac. Other arguments go to `gh release create` (for example `--prerelease`).
+
+By default the build is signed ad-hoc on your Mac. A Developer ID build, signed and notarized by Apple, comes from GitHub Actions: run the **release-build** workflow (Actions → release-build → Run workflow), then publish its result with `zsh release.sh --from-ci <run-id> --notes "…"`. The update archive is still signed with the Sparkle key on the maintainer's Mac. Without the signing secrets the workflow simply makes an ad-hoc build. Details: [CONTRIBUTING.md](CONTRIBUTING.md#code-signing-maintainers).
 
 The first build downloads [Sparkle](https://github.com/sparkle-project/Sparkle) 2.10.0 into `.vendor/` and checks its SHA-256.
 
@@ -129,6 +133,10 @@ The first build downloads [Sparkle](https://github.com/sparkle-project/Sparkle) 
 ### Tests
 
 `zsh test.sh` compiles `Core.swift` with `Tests/*.swift` using plain `swiftc` (no Xcode project) and exits non-zero on any failure. It checks name numbering, shortcut conflicts, that every string has every language, and that every Office template is a valid zip. CI runs it on each pull request.
+
+## Contributing
+
+Pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Bugs go to [Issues](../../issues), ideas and questions to [Discussions](../../discussions).
 
 ## Support
 

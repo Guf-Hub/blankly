@@ -1,0 +1,51 @@
+name: Bug report / Сообщить об ошибке
+description: Something in Blankly doesn't work as expected. / Что-то в Blankly работает не так.
+labels: [bug]
+body:
+  - type: input
+    id: blankly-version
+    attributes:
+      label: Blankly version / Версия Blankly
+      description: Menu → About, or Finder → Blankly.app → Get Info. / Меню → «О программе» или «Свойства» у Blankly.app.
+      placeholder: "1.3.1"
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version / Версия macOS
+      placeholder: "Sequoia 15.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: arch
+    attributes:
+      label: Mac type / Тип Mac
+      options:
+        - Apple Silicon (M1, M2, M3, M4…)
+        - Intel
+        - Not sure / Не знаю
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Шаги
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected / Что ожидали
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened / Что получилось
+      description: Screenshots are welcome. / Скриншоты приветствуются.
+    validations:
+      required: true
