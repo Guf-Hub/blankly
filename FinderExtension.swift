@@ -14,25 +14,25 @@ final class FinderSync: FIFinderSync {
 
     // Строки расширения: язык → ключ → текст. Нет перевода — английский. Ключи проверяет Tests/StringsTests.swift.
     static let strings: [String: [String: String]] = [
-        "en": ["text": "Text", "loText": "LibreOffice Text", "loCalc": "LibreOffice Spreadsheet", "loImpress": "LibreOffice Presentation",
+        "en": ["text": "Text",
                "newFile": "New File", "newFolder": "New Folder", "tip": "New file in this folder",
                "clipboard": "From Clipboard…", "more": "More… (my templates)"],
-        "ru": ["text": "Текст", "loText": "LibreOffice Текст", "loCalc": "LibreOffice Таблица", "loImpress": "LibreOffice Презентация",
+        "ru": ["text": "Текст",
                "newFile": "Новый файл", "newFolder": "Новая папка", "tip": "Новый файл в этой папке",
                "clipboard": "Из буфера обмена…", "more": "Другое… (мои шаблоны)"],
-        "de": ["text": "Text", "loText": "LibreOffice Text", "loCalc": "LibreOffice Tabelle", "loImpress": "LibreOffice Präsentation",
+        "de": ["text": "Text",
                "newFile": "Neue Datei", "newFolder": "Neuer Ordner", "tip": "Neue Datei in diesem Ordner",
                "clipboard": "Aus der Zwischenablage …", "more": "Weitere … (meine Vorlagen)"],
-        "fr": ["text": "Texte", "loText": "LibreOffice Texte", "loCalc": "LibreOffice Tableur", "loImpress": "LibreOffice Présentation",
+        "fr": ["text": "Texte",
                "newFile": "Nouveau fichier", "newFolder": "Nouveau dossier", "tip": "Nouveau fichier dans ce dossier",
                "clipboard": "Depuis le presse-papiers…", "more": "Autres… (mes modèles)"],
-        "es": ["text": "Texto", "loText": "LibreOffice Texto", "loCalc": "LibreOffice Hoja de cálculo", "loImpress": "LibreOffice Presentación",
+        "es": ["text": "Texto",
                "newFile": "Nuevo archivo", "newFolder": "Nueva carpeta", "tip": "Nuevo archivo en esta carpeta",
                "clipboard": "Desde el portapapeles…", "more": "Más… (mis plantillas)"],
-        "zh-Hans": ["text": "文本", "loText": "LibreOffice 文本", "loCalc": "LibreOffice 电子表格", "loImpress": "LibreOffice 演示文稿",
+        "zh-Hans": ["text": "文本",
                     "newFile": "新建文件", "newFolder": "新建文件夹", "tip": "在此文件夹中新建文件",
                     "clipboard": "来自剪贴板…", "more": "更多…（我的模板）"],
-        "ja": ["text": "テキスト", "loText": "LibreOffice テキスト", "loCalc": "LibreOffice スプレッドシート", "loImpress": "LibreOffice プレゼンテーション",
+        "ja": ["text": "テキスト",
                "newFile": "新規ファイル", "newFolder": "新規フォルダ", "tip": "このフォルダに新規ファイル",
                "clipboard": "クリップボードから…", "more": "その他…（マイテンプレート）"],
     ]
@@ -43,7 +43,7 @@ final class FinderSync: FIFinderSync {
         [("txt", "\(t("text")) (.txt)"), ("md", "Markdown (.md)"), ("json", "JSON (.json)"),
          ("csv", "CSV (.csv)"), ("html", "HTML (.html)"), ("py", "Python (.py)")],
         [("docx", "Word (.docx)"), ("xlsx", "Excel (.xlsx)"), ("pptx", "PowerPoint (.pptx)")],
-        [("odt", "\(t("loText")) (.odt)"), ("ods", "\(t("loCalc")) (.ods)"), ("odp", "\(t("loImpress")) (.odp)")],
+        [("odt", "LibreOffice Writer (.odt)"), ("ods", "LibreOffice Calc (.ods)"), ("odp", "LibreOffice Impress (.odp)")],
     ] }
     static let allExts = formats.flatMap { $0.map { $0.0 } }
 

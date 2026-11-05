@@ -716,17 +716,17 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
     func buildFormatWindow() {
         fmtRows = menuFormats().all
         let h = CGFloat(min(fmtRows.count, 14) * 30 + 28 + 100)
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 710, height: h), styleMask: [.titled, .closable],
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 780, height: h), styleMask: [.titled, .closable],
                          backing: .buffered, defer: false)
         w.isReleasedWhenClosed = false
         w.delegate = self
         let v = w.contentView!
-        fmtHint.frame = NSRect(x: 20, y: h - 50, width: 670, height: 34)
+        fmtHint.frame = NSRect(x: 20, y: h - 50, width: 740, height: 34)
         fmtHint.font = .systemFont(ofSize: 11); fmtHint.textColor = .secondaryLabelColor
         v.addSubview(fmtHint)
 
         let table = NSTableView()
-        for (id, title, width) in [("show", L("colShow"), 80), ("name", L("base"), 230), ("key", L("colKey"), 160), ("open", L("colOpen"), 180)] {
+        for (id, title, width) in [("show", L("colShow"), 80), ("name", L("base"), Int(fmtNameColumnWidth)), ("key", L("colKey"), 160), ("open", L("colOpen"), Int(fmtOpenColumnWidth))] {
             let c = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(id))
             c.title = title; c.width = CGFloat(width); c.resizingMask = []
             table.addTableColumn(c)
@@ -740,13 +740,13 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         table.registerForDraggedTypes([fmtDragType])
         table.setDraggingSourceOperationMask(.move, forLocal: true)
         table.draggingDestinationFeedbackStyle = .gap
-        let scroll = NSScrollView(frame: NSRect(x: 20, y: 44, width: 670, height: h - 100))
+        let scroll = NSScrollView(frame: NSRect(x: 20, y: 44, width: 740, height: h - 100))
         scroll.documentView = table
         scroll.hasVerticalScroller = true
         scroll.borderType = .bezelBorder
         v.addSubview(scroll)
 
-        fmtNote.frame = NSRect(x: 20, y: 16, width: 670, height: 16)
+        fmtNote.frame = NSRect(x: 20, y: 16, width: 740, height: 16)
         fmtNote.font = .systemFont(ofSize: 11); fmtNote.textColor = .systemRed
         v.addSubview(fmtNote)
         fmtTable = table
@@ -798,7 +798,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
     // «Открывать в…»: программы, которые умеют открывать тип; выбрана текущая по умолчанию
     func openPopup(for f: Format) -> NSView {
         let cell = NSView()
-        let p = NSPopUpButton(frame: NSRect(x: 0, y: 2, width: 172, height: 26), pullsDown: false)
+        let p = NSPopUpButton(frame: NSRect(x: 0, y: 2, width: fmtOpenColumnWidth - 8, height: 26), pullsDown: false)
         p.identifier = NSUserInterfaceItemIdentifier(f.ext)
         p.setAccessibilityLabel("\(f.title): \(L("colOpen"))")
         p.target = self; p.action = #selector(openChanged(_:))

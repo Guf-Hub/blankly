@@ -16,9 +16,6 @@ let translations: [String: [String: String]] = [
         "settings": "Settings…",
         "quit": "Quit Blankly",
         "text": "Text",
-        "lo_text": "LibreOffice Text",
-        "lo_calc": "LibreOffice Spreadsheet",
-        "lo_impress": "LibreOffice Presentation",
         "askFolder": "Name of the new folder",
         "askFile": "Name of the new file",
         "askWhere": "Will be created in “%@”",
@@ -72,9 +69,6 @@ let translations: [String: [String: String]] = [
         "settings": "Настройки…",
         "quit": "Выйти из Blankly",
         "text": "Текст",
-        "lo_text": "LibreOffice Текст",
-        "lo_calc": "LibreOffice Таблица",
-        "lo_impress": "LibreOffice Презентация",
         "askFolder": "Имя новой папки",
         "askFile": "Имя нового файла",
         "askWhere": "Будет создано в «%@»",
@@ -128,9 +122,6 @@ let translations: [String: [String: String]] = [
         "settings": "Einstellungen …",
         "quit": "Blankly beenden",
         "text": "Text",
-        "lo_text": "LibreOffice Text",
-        "lo_calc": "LibreOffice Tabelle",
-        "lo_impress": "LibreOffice Präsentation",
         "askFolder": "Name des neuen Ordners",
         "askFile": "Name der neuen Datei",
         "askWhere": "Wird in „%@“ erstellt",
@@ -184,9 +175,6 @@ let translations: [String: [String: String]] = [
         "settings": "Réglages…",
         "quit": "Quitter Blankly",
         "text": "Texte",
-        "lo_text": "LibreOffice Texte",
-        "lo_calc": "LibreOffice Tableur",
-        "lo_impress": "LibreOffice Présentation",
         "askFolder": "Nom du nouveau dossier",
         "askFile": "Nom du nouveau fichier",
         "askWhere": "Sera créé dans « %@ »",
@@ -240,9 +228,6 @@ let translations: [String: [String: String]] = [
         "settings": "Ajustes…",
         "quit": "Salir de Blankly",
         "text": "Texto",
-        "lo_text": "LibreOffice Texto",
-        "lo_calc": "LibreOffice Hoja de cálculo",
-        "lo_impress": "LibreOffice Presentación",
         "askFolder": "Nombre de la nueva carpeta",
         "askFile": "Nombre del nuevo archivo",
         "askWhere": "Se creará en «%@»",
@@ -296,9 +281,6 @@ let translations: [String: [String: String]] = [
         "settings": "设置…",
         "quit": "退出 Blankly",
         "text": "文本",
-        "lo_text": "LibreOffice 文本",
-        "lo_calc": "LibreOffice 电子表格",
-        "lo_impress": "LibreOffice 演示文稿",
         "askFolder": "新文件夹的名称",
         "askFile": "新文件的名称",
         "askWhere": "将创建在“%@”中",
@@ -352,9 +334,6 @@ let translations: [String: [String: String]] = [
         "settings": "設定…",
         "quit": "Blankly を終了",
         "text": "テキスト",
-        "lo_text": "LibreOffice テキスト",
-        "lo_calc": "LibreOffice スプレッドシート",
-        "lo_impress": "LibreOffice プレゼンテーション",
         "askFolder": "新規フォルダの名前",
         "askFile": "新規ファイルの名前",
         "askWhere": "“%@”に作成されます",
@@ -407,6 +386,10 @@ func L(_ k: String, _ lang: String) -> String { translations[lang]?[k] ?? transl
 
 // MARK: - Форматы
 
+// Ширина столбцов окна «Форматы» (main.swift); Tests/LayoutTests.swift проверяет, что самые длинные названия на всех языках влезают.
+let fmtNameColumnWidth: CGFloat = 220
+let fmtOpenColumnWidth: CGFloat = 230
+
 struct Format { let ext: String; let title: String }
 func formatGroups(lang: String) -> [[Format]] {
     [[Format(ext: "txt", title: "\(L("text", lang)) (.txt)"),
@@ -418,9 +401,9 @@ func formatGroups(lang: String) -> [[Format]] {
      [Format(ext: "docx", title: "Word (.docx)"),
       Format(ext: "xlsx", title: "Excel (.xlsx)"),
       Format(ext: "pptx", title: "PowerPoint (.pptx)")],
-     [Format(ext: "odt", title: "\(L("lo_text", lang)) (.odt)"),
-      Format(ext: "ods", title: "\(L("lo_calc", lang)) (.ods)"),
-      Format(ext: "odp", title: "\(L("lo_impress", lang)) (.odp)")]]
+     [Format(ext: "odt", title: "LibreOffice Writer (.odt)"),
+      Format(ext: "ods", title: "LibreOffice Calc (.ods)"),
+      Format(ext: "odp", title: "LibreOffice Impress (.odp)")]]
 }
 
 // Пункты меню в нужном порядке: папка ("") и форматы с номером группы (для разделителей).
