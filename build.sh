@@ -5,7 +5,7 @@
 set -e
 cd "${0:A:h}"
 NAME=Blankly
-VERSION=1.1
+VERSION=1.2
 APP="/Applications/$NAME.app"
 OUT="build/$NAME.app"
 

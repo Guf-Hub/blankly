@@ -22,6 +22,7 @@ There are three ways to open Blankly:
 - Press **Control + Option + N** anywhere. A menu opens next to the cursor.
 - Right-click an empty spot in a Finder window or on the Desktop → **New File** → pick a format.
 - Click the Blankly button in the Finder toolbar (see [Finder](#finder) below).
+- Or give a format its own shortcut — say **Control + Option + W** for Word — and skip the menu entirely (see [Settings](#settings)).
 
 Then choose **New Folder** or a file format, type a name and press Enter. The name is pre-filled and selected, so you can just start typing.
 
@@ -46,6 +47,7 @@ Open the menu (Control + Option + N) → **Settings…** at the bottom.
 | Setting | What it does |
 |---|---|
 | Shortcut | Click the field and press a new combination. It must include ⌘, ⌃ or ⌥. Esc cancels. If another app already uses it, Blankly says so. |
+| Format shortcuts | **Set Up…** opens a list: New Folder and every format. Click a field and press **Control + Option** + a key. Pressing it later asks for a name and creates that file right away, no menu. Blankly warns if the shortcut is already used by its menu, another format, macOS (Settings → Keyboard → Keyboard Shortcuts) or another app. Control + Option is required because macOS can't tell which shortcuts other apps use inside their own menus, and those rarely use this pair. |
 | Language | English or Русский. By default Blankly follows the system: Russian on a Russian Mac, English otherwise. |
 | Open at login | Starts Blankly in the background when you log in, so the shortcut always works. |
 | Finder right-click | **Turn On…** opens the macOS list of Finder extensions; enable Blankly there. |
@@ -112,6 +114,16 @@ zsh build.sh --no-install # build only: build/Blankly.app, .zip and .dmg
 ```
 
 `main.swift` is the whole app, `FinderExtension.swift` is the Finder extension, `icon.swift` draws the icon, `Resources/templates` holds the empty Office documents.
+
+## Support
+
+Blankly is free. If it saves you time and you'd like to say thanks — send **USDT on the TON network** to:
+
+```
+UQBQ3pthdJ3qGhAgNbeo95fsqeauO1R65JFuCPlVdbvvJEvF
+```
+
+Only USDT and only on TON. Other coins or networks sent there will be lost.
 
 ## Author
 
