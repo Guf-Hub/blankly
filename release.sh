@@ -81,5 +81,13 @@ ${DESCRIPTION}      <enclosure url="https://github.com/Guf-Hub/blankly/releases/
 EOF
 xmllint --noout build/appcast.xml
 
-gh release create "$TAG" "build/Blankly-$VERSION.dmg" build/Blankly.zip build/appcast.xml --title "Blankly $VERSION" "${GH_ARGS[@]}"
-shasum -a 256 "build/Blankly-$VERSION.dmg"
+# В релиз DMG уходит под постоянным именем Blankly.dmg: на него ссылается cask,
+# а плашка скачиваний в README считает только его (без appcast.xml и zip обновлений).
+cp "build/Blankly-$VERSION.dmg" build/Blankly.dmg
+gh release create "$TAG" build/Blankly.dmg build/Blankly.zip build/appcast.xml --title "Blankly $VERSION" "${GH_ARGS[@]}"
+
+# Сверка без скачивания (скачивание засчиталось бы в счётчик): SHA-256 файла, который отдаёт GitHub.
+LOCAL=$(shasum -a 256 build/Blankly.dmg | cut -d' ' -f1)
+REMOTE=$(gh api "repos/Guf-Hub/blankly/releases/tags/$TAG" --jq '.assets[] | select(.name=="Blankly.dmg") | .digest' | sed 's/^sha256://')
+[[ "$LOCAL" == "$REMOTE" ]] || { echo "SHA-256 не совпал: локально $LOCAL, на GitHub $REMOTE" >&2; exit 1 }
+echo "Blankly.dmg на GitHub совпадает с локальным, SHA-256 для cask: $LOCAL"
