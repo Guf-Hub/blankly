@@ -5,6 +5,8 @@
 <p align="center">Create a new file or folder right where you are on macOS.<br>
 Press <kbd>⌃⌥N</kbd>, pick a format, type a name.</p>
 
+<p align="center"><a href="https://github.com/Guf-Hub/blankly/releases/latest"><b>⬇ Download for macOS</b></a></p>
+
 <p align="center"><b>English</b> | <a href="README.ru.md">Русский</a></p>
 
 ---
