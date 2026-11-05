@@ -232,6 +232,7 @@ func carbonMods(_ f: NSEvent.ModifierFlags) -> UInt32 {
 
 final class App: NSObject, NSApplicationDelegate {
     var targetDir = desktopURL
+    var clickPoint = NSPoint.zero // где был курсор при вызове меню — туда ставим файл на рабочем столе
     var hotKeyRef: EventHotKeyRef?
     var settings: SettingsWindow?
     var launchedAtLogin = false
@@ -301,6 +302,7 @@ final class App: NSObject, NSApplicationDelegate {
             // только известные форматы: ссылку может открыть кто угодно
             guard ext.isEmpty || formatGroups().joined().contains(where: { $0.ext == ext }) else { continue }
             targetDir = dir
+            clickPoint = NSEvent.mouseLocation
             NSApp.activate(ignoringOtherApps: true)
             let item = NSMenuItem()
             item.representedObject = ext
@@ -362,7 +364,8 @@ final class App: NSObject, NSApplicationDelegate {
 
         NSApp.activate(ignoringOtherApps: true)
         // Меню целиком на экране: у нижнего/правого края сдвигаем вверх/влево.
-        var at = NSEvent.mouseLocation
+        clickPoint = NSEvent.mouseLocation
+        var at = clickPoint
         if let screen = NSScreen.screens.first(where: { NSMouseInRect(at, $0.frame, false) }) ?? NSScreen.main {
             let vis = screen.visibleFrame
             at.y = min(max(at.y, vis.minY + menu.size.height), vis.maxY)
@@ -421,8 +424,28 @@ final class App: NSObject, NSApplicationDelegate {
 
     // Выделить созданное в уже открытом окне Finder. На рабочем столе не трогаем:
     // Finder на «select» открыл бы окно стола.
+    // Новый файл на рабочем столе — под курсор, а не в первое свободное место у правого края.
+    // Если значки на столе упорядочены автоматически, Finder сам решит, куда ставить.
+    func placeOnDesktop(_ url: URL) {
+        guard let main = NSScreen.screens.first else { return }
+        let x = Int(clickPoint.x), y = Int(main.frame.maxY - clickPoint.y) // у Finder отсчёт от верхнего края
+        let name = url.lastPathComponent.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+        let src = """
+        tell application "Finder"
+            repeat 10 times
+                if exists item "\(name)" of desktop then exit repeat
+                delay 0.1
+            end repeat
+            set desktop position of item "\(name)" of desktop to {\(x), \(y)}
+        end tell
+        """
+        var err: NSDictionary?
+        NSAppleScript(source: src)?.executeAndReturnError(&err)
+        if let err { NSLog("Blankly: place failed: %@", err) }
+    }
+
     func select(_ url: URL) {
-        if isDesktop(url.deletingLastPathComponent()) { return }
+        if isDesktop(url.deletingLastPathComponent()) { placeOnDesktop(url); return }
         let p = url.path.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
         let src = """
         set f to (POSIX file "\(p)") as alias
