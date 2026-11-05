@@ -8,19 +8,42 @@ import UniformTypeIdentifiers
 @objc(FinderSync)
 final class FinderSync: FIFinderSync {
     // Язык — из настроек Blankly (читать их разрешает entitlement в build.sh); не выбран — язык системы, как в приложении
-    static var ru: Bool {
-        (UserDefaults(suiteName: "app.blankly")?.string(forKey: "lang")
-            ?? (Locale.preferredLanguages.first?.hasPrefix("ru") == true ? "ru" : "en")) == "ru"
+    static var lang: String {
+        resolveLang(saved: UserDefaults(suiteName: "app.blankly")?.string(forKey: "lang"), preferred: Locale.preferredLanguages)
     }
+
+    // Строки расширения: язык → ключ → текст. Нет перевода — английский. Ключи проверяет Tests/StringsTests.swift.
+    static let strings: [String: [String: String]] = [
+        "en": ["text": "Text",
+               "newFile": "New File", "newFolder": "New Folder", "tip": "New file in this folder",
+               "clipboard": "From Clipboard…", "more": "More… (my templates)"],
+        "ru": ["text": "Текст",
+               "newFile": "Новый файл", "newFolder": "Новая папка", "tip": "Новый файл в этой папке",
+               "clipboard": "Из буфера обмена…", "more": "Другое… (мои шаблоны)"],
+        "de": ["text": "Text",
+               "newFile": "Neue Datei", "newFolder": "Neuer Ordner", "tip": "Neue Datei in diesem Ordner",
+               "clipboard": "Aus der Zwischenablage …", "more": "Weitere … (meine Vorlagen)"],
+        "fr": ["text": "Texte",
+               "newFile": "Nouveau fichier", "newFolder": "Nouveau dossier", "tip": "Nouveau fichier dans ce dossier",
+               "clipboard": "Depuis le presse-papiers…", "more": "Autres… (mes modèles)"],
+        "es": ["text": "Texto",
+               "newFile": "Nuevo archivo", "newFolder": "Nueva carpeta", "tip": "Nuevo archivo en esta carpeta",
+               "clipboard": "Desde el portapapeles…", "more": "Más… (mis plantillas)"],
+        "zh-Hans": ["text": "文本",
+                    "newFile": "新建文件", "newFolder": "新建文件夹", "tip": "在此文件夹中新建文件",
+                    "clipboard": "来自剪贴板…", "more": "更多…（我的模板）"],
+        "ja": ["text": "テキスト",
+               "newFile": "新規ファイル", "newFolder": "新規フォルダ", "tip": "このフォルダに新規ファイル",
+               "clipboard": "クリップボードから…", "more": "その他…（マイテンプレート）"],
+    ]
+    static func t(_ k: String) -> String { strings[lang]?[k] ?? strings["en"]?[k] ?? k }
 
     // (расширение, название); "folder" — новая папка. Тот же список, что в главном меню Blankly.
     static var formats: [[(String, String)]] { [
-        [("txt", ru ? "Текст (.txt)" : "Text (.txt)"), ("md", "Markdown (.md)"), ("json", "JSON (.json)"),
+        [("txt", "\(t("text")) (.txt)"), ("md", "Markdown (.md)"), ("json", "JSON (.json)"),
          ("csv", "CSV (.csv)"), ("html", "HTML (.html)"), ("py", "Python (.py)")],
         [("docx", "Word (.docx)"), ("xlsx", "Excel (.xlsx)"), ("pptx", "PowerPoint (.pptx)")],
-        [("odt", ru ? "LibreOffice Текст (.odt)" : "LibreOffice Text (.odt)"),
-         ("ods", ru ? "LibreOffice Таблица (.ods)" : "LibreOffice Spreadsheet (.ods)"),
-         ("odp", ru ? "LibreOffice Презентация (.odp)" : "LibreOffice Presentation (.odp)")],
+        [("odt", "LibreOffice Writer (.odt)"), ("ods", "LibreOffice Calc (.ods)"), ("odp", "LibreOffice Impress (.odp)")],
     ] }
     static let allExts = formats.flatMap { $0.map { $0.0 } }
 
@@ -31,7 +54,7 @@ final class FinderSync: FIFinderSync {
 
     // Кнопка на панели окна Finder (добавляется через «Вид → Настроить панель инструментов»)
     override var toolbarItemName: String { "Blankly" }
-    override var toolbarItemToolTip: String { Self.ru ? "Новый файл в этой папке" : "New file in this folder" }
+    override var toolbarItemToolTip: String { Self.t("tip") }
     override var toolbarItemImage: NSImage {
         let img = NSImage(systemSymbolName: "doc.badge.plus", accessibilityDescription: "Blankly") ?? NSImage()
         img.isTemplate = true // на панели Finder сам красит под тему
@@ -44,7 +67,7 @@ final class FinderSync: FIFinderSync {
             return formatsMenu() // сразу список форматов
         case .contextualMenuForContainer:
             let menu = NSMenu()
-            let item = NSMenuItem(title: Self.ru ? "Новый файл" : "New File", action: nil, keyEquivalent: "")
+            let item = NSMenuItem(title: Self.t("newFile"), action: nil, keyEquivalent: "")
             item.image = themed("doc.badge.plus")
             item.submenu = formatsMenu()
             menu.addItem(item)
@@ -59,7 +82,7 @@ final class FinderSync: FIFinderSync {
     func formatsMenu() -> NSMenu {
         let menu = NSMenu()
         let suite = UserDefaults(suiteName: "app.blankly")
-        var items: [(ext: String, title: String, group: Int)] = [("", Self.ru ? "Новая папка" : "New Folder", 0)]
+        var items: [(ext: String, title: String, group: Int)] = [("", Self.t("newFolder"), 0)]
         for (i, g) in Self.formats.enumerated() { items += g.map { ($0.0, $0.1, i + 1) } }
         items = items.filter { $0.ext.isEmpty || canOpen($0.ext) }
         let r = FormatPrefs.apply(items.map { $0.ext },
@@ -76,10 +99,10 @@ final class FinderSync: FIFinderSync {
         let pb = NSPasteboard.general
         if pb.string(forType: .string) != nil || pb.data(forType: .png) != nil || pb.data(forType: .tiff) != nil {
             menu.addItem(.separator())
-            menu.addItem(entry(Self.ru ? "Из буфера обмена…" : "From Clipboard…", tag: -2, symbol: "doc.on.clipboard"))
+            menu.addItem(entry(Self.t("clipboard"), tag: -2, symbol: "doc.on.clipboard"))
         }
         menu.addItem(.separator())
-        menu.addItem(entry(Self.ru ? "Другое… (мои шаблоны)" : "More… (my templates)", tag: -1, symbol: nil))
+        menu.addItem(entry(Self.t("more"), tag: -1, symbol: nil))
         return menu
     }
 

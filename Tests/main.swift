@@ -5,6 +5,8 @@ let templatesDir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : 
 testNames()
 testShortcuts()
 testStrings()
+testLanguageChoice()
+testFormatColumns()
 testFormatOrder()
 testCreation()
 testTemplates(dir: templatesDir)

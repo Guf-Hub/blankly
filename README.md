@@ -53,7 +53,7 @@ Open the menu (Control + Option + N) → **Settings…** at the bottom.
 |---|---|
 | Shortcut | Click the field and press a new combination. It must include ⌘, ⌃ or ⌥. Esc cancels. If another app already uses it, Blankly says so. |
 | Formats | **Set Up…** opens a list: New Folder and every format. Each row has a **Show** checkbox (at least one item must stay), a shortcut field and **Open in…**, the app that opens this file type by default (macOS asks you to confirm the change). Drag rows to set the order. For a shortcut, click a field and press **Control + Option** + a key. Pressing it later asks for a name and creates that file right away, no menu. Blankly warns if the shortcut is already used by its menu, another format, macOS (Settings → Keyboard → Keyboard Shortcuts) or another app. Control + Option is required because macOS can't tell which shortcuts other apps use inside their own menus, and those rarely use this pair. |
-| Language | English or Русский. By default Blankly follows the system: Russian on a Russian Mac, English otherwise. |
+| Language | English, Русский, Deutsch, Français, Español, 简体中文 or 日本語. By default Blankly follows the system language and falls back to English. |
 | Open at login | Starts Blankly in the background when you log in, so the shortcut always works. |
 | Finder right-click | **Turn On…** opens the macOS list of Finder extensions; enable Blankly there. |
 | Open file right after creating | Off by default. When on, a new file opens in its default app. A folder is only selected in Finder. If nothing can open the file, it is just selected. |
