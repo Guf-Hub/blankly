@@ -940,8 +940,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
             else { b.title = "—" }
             return cell
         case "open":
-            // HTML не даём: macOS вместе с программой для .html меняет и браузер для ссылок http/https
-            return f.ext.isEmpty || f.ext == "html" ? NSView() : openPopup(for: f)
+            return f.ext.isEmpty ? NSView() : openPopup(for: f)
         default:
             return nil
         }
@@ -953,7 +952,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         let p = NSPopUpButton(frame: NSRect(x: 0, y: 2, width: fmtOpenColumnWidth - 8, height: 26), pullsDown: false)
         p.identifier = NSUserInterfaceItemIdentifier(f.ext)
         p.setAccessibilityLabel("\(f.title): \(L("colOpen"))")
-        p.toolTip = L("tipOpen")
+        p.toolTip = L(f.ext == "html" ? "tipOpenHtml" : "tipOpen")
         p.target = self; p.action = #selector(openChanged(_:))
         fillApps(p, ext: f.ext)
         cell.addSubview(p)
@@ -964,6 +963,11 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         p.removeAllItems()
         guard let type = UTType(filenameExtension: ext) else { return }
         var apps = NSWorkspace.shared.urlsForApplications(toOpen: type)
+        // HTML — только браузеры: macOS вместе с программой для .html меняет и браузер для ссылок http/https
+        if ext == "html", let web = URL(string: "https://example.com") {
+            let browsers = NSWorkspace.shared.urlsForApplications(toOpen: web)
+            apps = apps.filter { browsers.contains($0) }
+        }
         let cur = NSWorkspace.shared.urlForApplication(toOpen: type)
         if let cur, !apps.contains(cur) { apps.insert(cur, at: 0) }
         for u in apps {
