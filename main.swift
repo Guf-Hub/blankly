@@ -8,6 +8,14 @@ import ServiceManagement
 import UniformTypeIdentifiers
 import FinderSync
 import Sparkle
+import os
+
+// Ошибки — в системный журнал macOS (наружу ничего не уходит). Посмотреть:
+//   log show --predicate 'subsystem == "app.blankly"' --last 1h
+// Имён файлов и путей в журнале нет: только формат и код ошибки.
+let log = Logger(subsystem: "app.blankly", category: "app")
+// Код ошибки без текста: в тексте macOS бывают имена файлов
+func why(_ e: Error) -> String { let n = e as NSError; return "\(n.domain) \(n.code)" }
 
 // MARK: - Настройки и язык
 
@@ -167,6 +175,7 @@ func create(ext: String, base: String, in dir: URL, template: URL? = nil) -> URL
             if FormatList.executable.contains(ext) { try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path) }
         }
     } catch {
+        log.error("create .\(ext, privacy: .public) (template: \(template != nil, privacy: .public)) failed: \(why(error), privacy: .public)")
         // не оставляем недоделанную копию шаблона (url был свободен — всё, что там есть, создали мы)
         if template != nil { try? fm.removeItem(at: url) }
         return nil
@@ -493,6 +502,7 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
             try clip.data.write(to: url, options: .withoutOverwriting)
             reveal(url)
         } catch {
+            log.error("paste .\(clip.ext, privacy: .public) failed: \(why(error), privacy: .public)")
             NSSound.beep()
             let a = NSAlert()
             a.messageText = String(format: L("failTitle"), base)
@@ -531,7 +541,10 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
     // Нужен «Универсальный доступ»; без него файл просто остаётся выделенным.
     func startRename() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            guard AXIsProcessTrusted(), NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.finder" else { return }
+            guard AXIsProcessTrusted() else { log.notice("rename in Finder skipped: no Accessibility permission"); return }
+            guard NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.finder" else {
+                log.notice("rename in Finder skipped: Finder is not frontmost"); return
+            }
             for down in [true, false] {
                 CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(kVK_Return), keyDown: down)?.post(tap: .cghidEventTap)
             }
@@ -554,7 +567,7 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
         """
         var err: NSDictionary?
         NSAppleScript(source: src)?.executeAndReturnError(&err)
-        if let err { NSLog("Blankly: place failed: %@", err) }
+        if let err { log.error("place on desktop failed: AppleScript \(err[NSAppleScript.errorNumber] as? Int ?? 0, privacy: .public)") }
     }
 
     func select(_ url: URL) {
@@ -569,7 +582,7 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
         """
         var err: NSDictionary?
         NSAppleScript(source: src)?.executeAndReturnError(&err)
-        if let err { NSLog("Blankly: select failed: %@", err) }
+        if let err { log.error("select in Finder failed: AppleScript \(err[NSAppleScript.errorNumber] as? Int ?? 0, privacy: .public)") }
     }
 
     @objc func openSettings() {
@@ -595,7 +608,9 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
     func registerHotKey(code: UInt32, mods: UInt32) -> Bool {
         if let r = hotKeyRef { UnregisterEventHotKey(r); hotKeyRef = nil }
         let id = EventHotKeyID(signature: OSType(0x424C4E4B), id: 1) // 'BLNK'
-        return RegisterEventHotKey(code, mods, id, GetApplicationEventTarget(), 0, &hotKeyRef) == noErr
+        let status = RegisterEventHotKey(code, mods, id, GetApplicationEventTarget(), 0, &hotKeyRef)
+        if status != noErr { log.error("main shortcut \(code, privacy: .public)/\(mods, privacy: .public) not registered: \(status, privacy: .public)") }
+        return status == noErr
     }
 
     func unregisterFormatKeys() {
@@ -615,6 +630,7 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
                                    GetApplicationEventTarget(), 0, &ref) == noErr, let ref {
                 formatRefs.append(ref); formatIDs[id] = ext
             } else {
+                log.error("shortcut for .\(ext, privacy: .public) not registered")
                 failed.append(ext)
             }
         }
@@ -924,7 +940,8 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
             else { b.title = "—" }
             return cell
         case "open":
-            return f.ext.isEmpty ? NSView() : openPopup(for: f)
+            // HTML не даём: macOS вместе с программой для .html меняет и браузер для ссылок http/https
+            return f.ext.isEmpty || f.ext == "html" ? NSView() : openPopup(for: f)
         default:
             return nil
         }
@@ -972,7 +989,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         NSWorkspace.shared.setDefaultApplication(at: app, toOpen: type) { [weak self, weak p] err in
             DispatchQueue.main.async {
                 guard let err, let self else { return }
-                NSLog("Blankly: setDefaultApplication(.%@) failed: %@", ext, err.localizedDescription)
+                log.error("set default app for .\(ext, privacy: .public) failed: \(why(err), privacy: .public)")
                 self.fmtNote.stringValue = L("openFail")
                 if let p { self.fillApps(p, ext: ext) }
             }
@@ -1078,7 +1095,9 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
         let fm = FileManager.default
         for item in (try? fm.contentsOfDirectory(at: userTemplatesDir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? [] {
             let to = dir.appendingPathComponent(item.lastPathComponent)
-            if !fm.fileExists(atPath: to.path) { try? fm.copyItem(at: item, to: to) }
+            guard !fm.fileExists(atPath: to.path) else { continue }
+            do { try fm.copyItem(at: item, to: to) }
+            catch { log.error("copy template to new folder failed: \(why(error), privacy: .public)") }
         }
         userTemplatesDir = dir
         refresh()
@@ -1094,6 +1113,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate, NSTableViewDataSource, N
             if loginBox.state == .on { try SMAppService.mainApp.register() }
             else { try SMAppService.mainApp.unregister() }
         } catch {
+            log.error("open at login failed: \(why(error), privacy: .public)")
             note.stringValue = L("loginFail")
         }
         refresh()

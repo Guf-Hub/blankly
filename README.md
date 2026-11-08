@@ -67,7 +67,7 @@ Open the menu (Control + Option + N) → **Settings…** at the bottom.
 | Setting | What it does |
 |---|---|
 | Shortcut | Click the field and press a new combination. It must include ⌘, ⌃ or ⌥. Esc or switching to another app cancels. If another app already uses it, Blankly says so. |
-| Formats | **Set Up…** opens a list: New Folder and every format. Each row has a **Show** checkbox (at least one item must stay), a shortcut field and **Open in…**, the app that opens this file type by default (macOS asks you to confirm the change). Drag rows to set the order. For a shortcut, click a field and press **Control + Option** + a key. Pressing it later asks for a name and creates that file right away, no menu. The menu shows the shortcut next to its format. Blankly warns if the shortcut is already used by its menu, another format, macOS (Settings → Keyboard → Keyboard Shortcuts) or another app. Control + Option is required because macOS can't tell which shortcuts other apps use inside their own menus, and those rarely use this pair. |
+| Formats | **Set Up…** opens a list: New Folder and every format. Each row has a **Show** checkbox (at least one item must stay), a shortcut field and **Open in…**, the app that opens this file type by default (macOS asks you to confirm the change; HTML has none, because macOS would change your web browser along with it). Drag rows to set the order. For a shortcut, click a field and press **Control + Option** + a key. Pressing it later asks for a name and creates that file right away, no menu. The menu shows the shortcut next to its format. Blankly warns if the shortcut is already used by its menu, another format, macOS (Settings → Keyboard → Keyboard Shortcuts) or another app. Control + Option is required because macOS can't tell which shortcuts other apps use inside their own menus, and those rarely use this pair. |
 | Language | English, Русский, Deutsch, Français, Español, 简体中文 or 日本語. By default Blankly follows the system language and falls back to English. |
 | Open at login | Starts Blankly in the background when you log in, so the shortcut always works. |
 | Finder right-click | **Turn On…** opens the macOS list of Finder extensions; enable Blankly there. |
@@ -127,6 +127,26 @@ brew install --cask guf-hub/tap/blankly
 4. Optional: turn on the Finder extension — see [Finder](#finder).
 
 Requires macOS 13 or later. Apple Silicon and Intel.
+
+## If something goes wrong
+
+Blankly writes errors to the macOS system log. File names and paths are not written there, only the format and an error code. Nothing is sent anywhere.
+
+To see the last hour, run in Terminal:
+
+```bash
+log show --predicate 'subsystem == "app.blankly"' --last 1h --style compact
+```
+
+Or open **Console**, search for `app.blankly` and repeat what went wrong.
+
+To report a bug, save the log to a file on your Desktop:
+
+```bash
+log show --predicate 'subsystem == "app.blankly"' --last 1d --style compact > ~/Desktop/blankly-log.txt
+```
+
+Then open [Issues](../../issues/new/choose), describe what you did and attach `blankly-log.txt`. If Blankly crashed, also attach the newest `Blankly…` report from `~/Library/Logs/DiagnosticReports`.
 
 ## Uninstall
 
