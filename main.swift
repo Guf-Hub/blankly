@@ -239,22 +239,19 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
     var formatRefs: [EventHotKeyRef] = []
     var formatIDs: [UInt32: String] = [:] // id сочетания → расширение
     var settings: SettingsWindow?
-    var launchedAtLogin = false
     var launchedByLink = false
     // Обновления — Sparkle: раз в день читает appcast.xml из последнего релиза на GitHub,
     // проверяет подпись ключом из Info.plist (SUPublicEDKey) и ставит новую версию сам.
     lazy var updater = SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: nil, userDriverDelegate: self)
     var updateVersion: String? // нашлась новая версия — показываем пункт вверху меню
 
-    func applicationWillFinishLaunching(_ n: Notification) {
-        // Запуск как объект входа (автозапуск) — меню не показываем.
-        let ev = NSAppleEventManager.shared().currentAppleEvent
-        launchedAtLogin = ev?.eventID == AEEventID(kAEOpenApplication)
-            && ev?.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue == OSType(keyAELaunchedAsLogInItem)
-        launchedByLink = ev?.eventID == AEEventID(kAEGetURL)
-    }
-
     func applicationDidFinishLaunching(_ n: Notification) {
+        // Событие запуска есть только здесь: в applicationWillFinishLaunching оно ещё nil.
+        // Меню — только при обычном запуске (Spotlight, Док, Finder): у автозапуска в событии метка
+        // keyAELaunchedAsLogInItem, а при запуске по ссылке событие здесь уже nil.
+        let ev = NSAppleEventManager.shared().currentAppleEvent
+        let launchedByUser = ev?.eventID == AEEventID(kAEOpenApplication)
+            && ev?.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue != OSType(keyAELaunchedAsLogInItem)
         installHotKeyHandler()
         let hotKeyOK = registerHotKey(code: hotKeyCode, mods: hotKeyMods)
         // клавиши форматов и обновления — даже если главное сочетание занято
@@ -263,7 +260,7 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
         updater.startUpdater()
         if !hotKeyOK {
             openSettings(); settings?.note.stringValue = L("busy")
-        } else if !launchedAtLogin && !launchedByLink && !CommandLine.arguments.contains("--background") {
+        } else if launchedByUser && !launchedByLink && !CommandLine.arguments.contains("--background") {
             showMenu()
         }
     }
@@ -295,6 +292,7 @@ final class App: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate 
     // Ссылка от расширения Finder: blankly://new?path=/папка[&ext=txt|folder]
     // Без ext — полное меню Blankly, с ext — сразу спрашиваем имя.
     func application(_ application: NSApplication, open urls: [URL]) {
+        launchedByLink = true // приходит раньше applicationDidFinishLaunching: меню при запуске не нужно
         for url in urls where url.scheme == "blankly" && url.host == "new" {
             let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
             let path = items.first(where: { $0.name == "path" })?.value ?? ""
